@@ -11,9 +11,9 @@ use IEEE.NUMERIC_STD.ALL;
 entity TOP_MODUL is
     Port (
     -- Inputs
-        CLK           : in  STD_LOGIC;
-        RW            : in  STD_LOGIC;
-        DA            : in  STD_LOGIC_VECTOR(3 downto 0);
+        CLK           : in STD_LOGIC;
+        RW            : in STD_LOGIC;
+        DA            : in STD_LOGIC_VECTOR(3 downto 0);
         AA            : in STD_LOGIC_VECTOR(3 downto 0);
         BA            : in STD_LOGIC_VECTOR(3 downto 0);
         Constant_int  : in STD_LOGIC;
