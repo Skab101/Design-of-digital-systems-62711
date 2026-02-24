@@ -19,7 +19,7 @@ entity Shifter is
     );
 end Shifter;
 
-architecture Shifter_Behavorial of Shifter is
+architecture dataflow of Shifter is
 begin
 
-end Shifter_Behavorial;
+end dataflow;

@@ -10,11 +10,11 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity flip_flop is
     Port (
-        D     : in    STD_LOGIC;
-        Reset : in    STD_LOGIC;
-        load  : in    STD_LOGIC;
-        clk   : in    STD_LOGIC;
-        Q     : inout STD_LOGIC
+        D     : in  STD_LOGIC;
+        Reset : in  STD_LOGIC;
+        load  : in  STD_LOGIC;
+        clk   : in  STD_LOGIC;
+        Q     : out STD_LOGIC
     );
 end flip_flop;
 

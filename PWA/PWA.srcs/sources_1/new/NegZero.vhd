@@ -15,7 +15,7 @@ entity NegZero is
     );
 end NegZero;
 
-architecture NegZero_Behavorial of NegZero is
+architecture dataflow of NegZero is
 begin
 
-end NegZero_Behavorial;
+end dataflow;

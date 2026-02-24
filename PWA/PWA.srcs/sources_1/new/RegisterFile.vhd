@@ -3,9 +3,9 @@
 -- Description: 16 x 8-bit Register File (RF)
 --              Structural: instantiates DestinationDecoder, RegisterR16,
 --              and two MUX16x1x8 (for A_Data and B_Data outputs)
---              RW + DA  → selects which register to write
---              AA       → selects register for A_Data output
---              BA       → selects register for B_Data output
+--              RW + DA  -> selects which register to write
+--              AA       -> selects register for A_Data output
+--              BA       -> selects register for B_Data output
 --              D_Data written on rising CLK edge when RW=1
 ----------------------------------------------------------------------------------
 
@@ -23,7 +23,7 @@ entity RegisterFile is
     );
 end RegisterFile;
 
-architecture RF_Behavorial of RegisterFile is
+architecture structural of RegisterFile is
 
     component DestinationDecoder is
         Port (WRITE : in  STD_LOGIC;
@@ -53,4 +53,4 @@ architecture RF_Behavorial of RegisterFile is
 
 begin
 
-end RF_Behavorial;
+end structural;

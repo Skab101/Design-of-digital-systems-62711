@@ -15,7 +15,7 @@ entity FunctionSelect is
     );
 end FunctionSelect;
 
-architecture FD_Behavorial of FunctionSelect is
+architecture dataflow of FunctionSelect is
 begin
 
-end FD_Behavorial;
+end dataflow;

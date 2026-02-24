@@ -26,7 +26,7 @@ entity Datapath is
     );
 end Datapath;
 
-architecture Datapath_Behavorial of Datapath is
+architecture structural of Datapath is
 
     component RegisterFile is
         Port (RESET  : in  STD_LOGIC;
@@ -52,4 +52,4 @@ architecture Datapath_Behavorial of Datapath is
 
 begin
 
-end Datapath_Behavorial;
+end structural;
