@@ -7,21 +7,22 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
-entity full_adder is
+entity full_adder_1_bit is
     Port (
-        x, y, ci : in  STD_LOGIC;
-        so       : out STD_LOGIC;
+        A, B, Ci : in  STD_LOGIC;
+        res      : out STD_LOGIC;
         co       : out STD_LOGIC
     );
-end full_adder;
+end full_adder_1_bit;
 
-architecture structural of full_adder is
-
-    component half_adder is
-        Port (x, y : in  STD_LOGIC;
-              s, c : out STD_LOGIC);
-    end component;
-
+architecture structural of full_adder_1_bit is
+signal Pi, Gi : STD_LOGIC; 
 begin
 
+-- propagate and generate
+Pi <= A xor B;
+Gi <= A and B;
+
+res <= Pi xor Ci; 
+co <= (Pi and Ci) or Gi;  
 end structural;
