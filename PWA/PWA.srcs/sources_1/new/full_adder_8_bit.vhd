@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- Company: 
--- Engineer: Kun Jonas Beck Jensen og ingen andre, kun ham, han er så smuk og dygtig og klog
+-- Engineer: Andreas, Jonas, Mads & Sigurd
 -- 
 -- Create Date: 24.02.2026 20:51:20
 -- Design Name: 
@@ -43,77 +43,92 @@ end full_adder_8_bit;
 architecture Structural of full_adder_8_bit is
     
     signal carry : STD_LOGIC_VECTOR(8 downto 0);
+    
+    component full_adder_1_bit
+        Port (
+            A : in STD_LOGIC;
+            B : in STD_LOGIC;
+            Cin : in STD_LOGIC;
+            res : out STD_LOGIC;
+            Co : out STD_LOGIC
+        );
+    end component;
+    
     begin
 
-    carry(0) <= Cin;
-    bit_0: entity work.full_adder_1_bit
-    port map(
-        A => A(0),
-        B => B(0),
-        Cin => Cin, 
-        res => sum(0),
-        Co => Cout
+carry(0) <= Cin(0);
 
-    ); 
+bit_0: full_adder_1_bit
+port map(
+    A => A(0),
+    B => B(0),
+    Cin => carry(0), 
+    res => sum(0),
+    Co => carry(1)
+); 
 
-bit_1: entity work.full_adder_1_bit
-    port map(
-        A => A(1),
-        B => B(1),
-        Cin => Co(0), 
-        res => sum(0),
-        Co => Cout
-        
-    );    
-bit_2: entity work.full_adder_1_bit
-    port map(
-        A => A(2),
-        B => B(2),
-        Cin => , 
-        res => sum(2),
-        Co => Cout
-        
-    );
-bit_3: entity work.full_adder_1_bit
-    port map(
-        A => A(3),
-        B => B(3),
-        Cin => Co(2), 
-        res => sum(3),
-        Co => Cout
-        
-    );
-bit_4: entity work.full_adder_1_bit
-    port map(
-        A => A(4),
-        B => B(4),
-        Ci => Co(3), 
-        res => sum(4),
-        Co => Cout
-    );
-bit_5: entity work.full_adder_1_bit
-    port map(
-        A => A(5),
-        B => B(5),
-        Ci => Co(4), 
-        res => sum(5),
-        Co => Cout
-    );
+bit_1: full_adder_1_bit
+port map(
+    A => A(1),
+    B => B(1),
+    Cin => carry(1), 
+    res => sum(1),
+    Co => carry(2)
+);    
 
-bit_6: entity work.full_adder_1_bit
-    port map(
-        A => A(6),
-        B => B(6),
-        Cin => Co(5), 
-        res => sum(6),
-        Co => Cout
-    );    
-bit_7: entity work.full_adder_1_bit
-    port map(
-        A => A(7),
-        B => B(7),
-        Cin => Co(6), 
-        res => sum(7),
-        Co => Cout
-    );FA0: full_adder port map(A(0), B(0), carry(0), Sum(0), carry(1));
+bit_2: full_adder_1_bit
+port map(
+    A => A(2),
+    B => B(2),
+    Cin => carry(2), 
+    res => sum(2),
+    Co => carry(3)
+);
+
+bit_3: full_adder_1_bit
+port map(
+    A => A(3),
+    B => B(3),
+    Cin => carry(3), 
+    res => sum(3),
+    Co => carry(4)
+);
+
+bit_4: full_adder_1_bit
+port map(
+    A => A(4),
+    B => B(4),
+    Cin => carry(4), 
+    res => sum(4),
+    Co => carry(5)
+);
+
+bit_5: full_adder_1_bit
+port map(
+    A => A(5),
+    B => B(5),
+    Cin => carry(5), 
+    res => sum(5),
+    Co => carry(6)
+);
+
+bit_6: full_adder_1_bit
+port map(
+    A => A(6),
+    B => B(6),
+    Cin => carry(6), 
+    res => sum(6),
+    Co => carry(7)
+);    
+
+bit_7: full_adder_1_bit
+port map(
+    A => A(7),
+    B => B(7),
+    Cin => carry(7), 
+    res => sum(7),
+    Co => carry(8)
+);
+
+Cout <= carry(8 downto 1);
 end Structural; 
