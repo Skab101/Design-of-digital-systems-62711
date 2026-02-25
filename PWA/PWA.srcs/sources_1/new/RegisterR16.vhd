@@ -22,13 +22,13 @@ entity RegisterR16 is
     );
 end RegisterR16;
 
-architecture RR16_Behavorial of RegisterR16 is
+architecture structural of RegisterR16 is
 
     component flip_flop is
-        Port (D, Reset, load, clk : in    STD_LOGIC;
-              Q                   : inout STD_LOGIC);
+        Port (D, Reset, load, clk : in  STD_LOGIC;
+              Q                   : out STD_LOGIC);
     end component;
 
 begin
 
-end RR16_Behavorial;
+end structural;

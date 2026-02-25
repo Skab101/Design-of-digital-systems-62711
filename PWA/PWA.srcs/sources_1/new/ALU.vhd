@@ -20,14 +20,14 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity ALU is
     Port (
-        A, B     : in  STD_LOGIC_VECTOR(7 downto 0); 
+        A, B     : in  STD_LOGIC_VECTOR(7 downto 0);
         J_Select : in  STD_LOGIC_VECTOR(3 downto 0);
         V, C     : out STD_LOGIC;
         J        : out STD_LOGIC_VECTOR(7 downto 0)
     );
 end ALU;
 
-architecture ALU_Behavorial of ALU is
+architecture structural of ALU is
 
     component arithmetic is
         generic (n : integer := 8);
@@ -46,9 +46,12 @@ architecture ALU_Behavorial of ALU is
               G      : out STD_LOGIC_VECTOR(n-1 downto 0));
     end component;
 
-    
-
+    component MUX2x1x8 is
+        Port (R, S       : in  STD_LOGIC_VECTOR(7 downto 0);
+              MUX_Select : in  STD_LOGIC;
+              Y          : out STD_LOGIC_VECTOR(7 downto 0));
+    end component;
 
 begin
 
-end ALU_Behavorial;
+end structural;

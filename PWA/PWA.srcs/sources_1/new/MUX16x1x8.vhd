@@ -19,7 +19,7 @@ entity MUX16x1x8 is
     );
 end MUX16x1x8;
 
-architecture MUX16x1x8_Behavorial of MUX16x1x8 is
+architecture dataflow of MUX16x1x8 is
 begin
 
-end MUX16x1x8_Behavorial;
+end dataflow;

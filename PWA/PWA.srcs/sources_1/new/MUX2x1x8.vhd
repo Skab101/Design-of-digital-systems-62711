@@ -17,7 +17,7 @@ entity MUX2x1x8 is
     );
 end MUX2x1x8;
 
-architecture MUX2x1x8_Behavorial of MUX2x1x8 is
+architecture dataflow of MUX2x1x8 is
 begin
 
-end MUX2x1x8_Behavorial;
+end dataflow;

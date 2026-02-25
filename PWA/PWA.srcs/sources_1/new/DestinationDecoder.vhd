@@ -16,7 +16,7 @@ entity DestinationDecoder is
     );
 end DestinationDecoder;
 
-architecture DD_Behavorial of DestinationDecoder is
+architecture dataflow of DestinationDecoder is
 begin
 
-end DD_Behavorial;
+end dataflow;
