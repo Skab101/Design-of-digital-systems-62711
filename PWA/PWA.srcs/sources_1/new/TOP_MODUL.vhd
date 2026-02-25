@@ -10,27 +10,26 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity TOP_MODUL is
     Port (
-        -- Clock & Reset
-        CLK   : in  STD_LOGIC;
-        RESET : in  STD_LOGIC;
-
-        -- Switches
-        SW    : in  STD_LOGIC_VECTOR(7 downto 0);
-
-        -- LEDs
-        LED   : out STD_LOGIC_VECTOR(7 downto 0);
-
-        -- 7-Segment Display
-        segments : out STD_LOGIC_VECTOR(6 downto 0);
-        dp       : out STD_LOGIC;
-        Anode    : out STD_LOGIC_VECTOR(7 downto 0);
-
-        -- Buttons
-        BTNC  : in  STD_LOGIC;
-        BTNU  : in  STD_LOGIC;
-        BTNL  : in  STD_LOGIC;
-        BTNR  : in  STD_LOGIC;
-        BTND  : in  STD_LOGIC
+    -- Inputs
+        CLK           : in STD_LOGIC;
+        RW            : in STD_LOGIC;
+        DA            : in STD_LOGIC_VECTOR(3 downto 0);
+        AA            : in STD_LOGIC_VECTOR(3 downto 0);
+        BA            : in STD_LOGIC_VECTOR(3 downto 0);
+        Constant_int  : in STD_LOGIC;
+        MB            : in STD_LOGIC_VECTOR(7 downto 0);
+        FS            : in STD_LOGIC_VECTOR(3 downto 0);
+        Data_In       : in STD_LOGIC_VECTOR(7 downto 0);
+        MD            : in STD_LOGIC;
+        
+        
+    -- Outputs
+        Addr_out      : out STD_LOGIC_VECTOR(7 downto 0);
+        Data_Out      : out STD_LOGIC_VECTOR(7 downto 0);
+        V             : out STD_LOGIC;
+        C             : out STD_LOGIC;
+        N             : out STD_LOGIC;
+        Z             : out STD_LOGIC
     );
 end TOP_MODUL;
 

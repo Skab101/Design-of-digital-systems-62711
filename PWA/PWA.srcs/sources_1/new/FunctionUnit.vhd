@@ -11,10 +11,10 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity FunctionUnit is
     Port (
-        A, B             : in  STD_LOGIC_VECTOR(7 downto 0);
-        FS3, FS2, FS1, FS0 : in  STD_LOGIC;
-        V, C, N, Z       : out STD_LOGIC;
-        F                : out STD_LOGIC_VECTOR(7 downto 0)
+        A, B               : in  STD_LOGIC_VECTOR(7 downto 0);
+        FS                 : in  STD_LOGIC_VECTOR(3 downto 0);
+        V, C, N, Z         : out STD_LOGIC;
+        F                  : out STD_LOGIC_VECTOR(7 downto 0)
     );
 end FunctionUnit;
 

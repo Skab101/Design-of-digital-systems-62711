@@ -20,7 +20,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity ALU is
     Port (
-        A, B     : in  STD_LOGIC_VECTOR(7 downto 0);
+        A, B     : in  STD_LOGIC_VECTOR(7 downto 0); 
         J_Select : in  STD_LOGIC_VECTOR(3 downto 0);
         V, C     : out STD_LOGIC;
         J        : out STD_LOGIC_VECTOR(7 downto 0)
@@ -45,6 +45,9 @@ architecture ALU_Behavorial of ALU is
               J1, J0 : in  STD_LOGIC;
               G      : out STD_LOGIC_VECTOR(n-1 downto 0));
     end component;
+
+    
+
 
 begin
 
