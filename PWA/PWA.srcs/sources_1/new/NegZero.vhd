@@ -16,6 +16,14 @@ entity NegZero is
 end NegZero;
 
 architecture NegZero_Behavorial of NegZero is
+
+signal ZeroCheck: STD_LOGIC_VECTOR(7 downto 0);
 begin
+
+N <= MUXF(7) AND '1';
+Z <= NOT (  ZeroCheck(7) OR ZeroCheck(6) OR ZeroCheck(5)
+OR ZeroCheck(4) OR ZeroCheck(3) OR ZeroCheck(2) OR 
+ZeroCheck(1) OR ZeroCheck(0) ); 
+ 
 
 end NegZero_Behavorial;

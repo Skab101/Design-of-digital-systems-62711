@@ -14,14 +14,14 @@ use IEEE.STD_LOGIC_1164.ALL;
 entity Shifter is
     Port (
         B        : in  STD_LOGIC_VECTOR(7 downto 0);
-        HSel : in  STD_LOGIC_VECTOR(1 downto 0);
+        HSel     : in  STD_LOGIC_VECTOR(1 downto 0);
         H        : out STD_LOGIC_VECTOR(7 downto 0)
     );
 end Shifter;
 
 
 architecture Shifter_Behavorial of Shifter is
-signal sl, sr, HTemp, sNonB: STD_LOGIC;
+signal sl, sr, HTemp: STD_LOGIC;
 signal slB, srB: STD_LOGIC_VECTOR(7 downto 0);
 
 begin
@@ -39,7 +39,8 @@ begin
  slB(0) <= '0';
 
  -- Resultat baseret på H_Select
- H(7 downto 0) <= (sr AND srB(7 downto 0)) OR (sl(7 downto 0) AND srB(7 downto 0)) OR (NOT Htemp AND B); 
-
+H <= (srB and (7 downto 0 => sr)) or -- (7 downto 0 => sr) kopierer værdien af sr til en 8-bit vektor
+     (slB and (7 downto 0 => sl)) or -- (7 downto 0 => sl) kopierer værdien af sl til en 8-bit vektor
+     (B   and (7 downto 0 => not HTemp)); -- (7 downto 0 => not Htemp) inverter og kopierer værdien af Htemp til en 8-bit vektor
 
 end Shifter_Behavorial;
