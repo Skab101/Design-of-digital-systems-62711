@@ -22,13 +22,30 @@ entity ALU is
     Port (
         A, B     : in  STD_LOGIC_VECTOR(7 downto 0);
         J_Select : in  STD_LOGIC_VECTOR(3 downto 0);
+        Cin      : in  STD_LOGIC;
         V, C     : out STD_LOGIC;
         J        : out STD_LOGIC_VECTOR(7 downto 0)
     );
 end ALU;
 
-architecture structural of ALU is
+architecture ALU_Structural of ALU is
 
+
+signal ASig, BSig: STD_LOGIC_VECTOR(7 downto 0);
 begin
 
-end structural;
+    full_adder: entity work.full_adder_8_bit
+    port map(
+            A    => ASig,
+            B    => BSig,
+            sum  => J,
+            Cin  => Cin,
+            Cout =>  C
+    );
+
+
+
+
+
+
+end ALU_Structural;
