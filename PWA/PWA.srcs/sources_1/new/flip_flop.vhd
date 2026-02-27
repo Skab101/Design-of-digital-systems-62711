@@ -20,5 +20,14 @@ end flip_flop;
 
 architecture Behavioral of flip_flop is
 begin
-
+    process(clk, Reset)
+    begin
+        if Reset = '1' then
+            Q <= '0';
+        elsif rising_edge(clk) then
+            if load = '1' then
+                Q <= D;
+            end if;
+        end if;
+    end process;
 end Behavioral;
