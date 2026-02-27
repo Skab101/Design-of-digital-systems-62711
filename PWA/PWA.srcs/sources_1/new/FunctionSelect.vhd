@@ -10,12 +10,18 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity FunctionSelect is
     Port (
-        FS3, FS2 : in  STD_LOGIC;
-        MF       : out STD_LOGIC
+        FS   : in  STD_LOGIC_vector(3 downto 0 );
+        JSel : out STD_LOGIC_VECTOR(3 downto 0);
+        HSel : out STD_LOGIC_VECTOR(3 downto 0);
+        MF   : out STD_LOGIC
     );
 end FunctionSelect;
 
-architecture dataflow of FunctionSelect is
-begin
+architecture Structural of FunctionSelect is
 
-end dataflow;
+    begin
+MF <= FS(3) and Fs(2);
+JSel(3 downto 0) <= FS(3 downto 0); 
+HSel(1 downto 0) <= FS(1 downto 0);  
+
+end Structural;
