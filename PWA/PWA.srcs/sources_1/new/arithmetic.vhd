@@ -31,9 +31,9 @@ architecture structural of arithmetic is
               Y         : out STD_LOGIC);
     end component;
 
-    component full_adder is
-        Port (x, y, ci : in  STD_LOGIC;
-              so, co   : out STD_LOGIC);
+    component full_adder_1_bit is
+        Port (A, B, Ci : in  STD_LOGIC;
+              res, co  : out STD_LOGIC);
     end component;
 
 begin
