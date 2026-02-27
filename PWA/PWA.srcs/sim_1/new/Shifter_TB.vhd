@@ -32,6 +32,18 @@ begin
     B <= "11111111";
     HSel <= "00";
 
+    wait for 200 ns; 
+    B <= "11111111";
+    HSel <= "01";
+    
+    wait for 200 ns; 
+    B <= "11111111";
+    HSel <= "10";
+        
+    wait for 200 ns; 
+    B <= "11111111";
+    HSel <= "00";    
+    
     -- Put test bench stimulus code here
 
     wait;
