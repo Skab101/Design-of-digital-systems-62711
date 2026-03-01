@@ -6,7 +6,8 @@ entity full_adder_8_bit is
            B    : in STD_LOGIC_VECTOR (7 downto 0);
            sum  : out STD_LOGIC_VECTOR (7 downto 0);
            Cin  : in STD_LOGIC;
-           Cout : out STD_LOGIC
+           Cout : out STD_LOGIC;
+           V : out STD_LOGIC
            );
 end full_adder_8_bit;
 
@@ -26,7 +27,7 @@ architecture Structural of full_adder_8_bit is
 
     begin
 
-carry(0) <= '0';
+carry(0) <= Cin;
 
 bit_0: full_adder_1_bit
 port map(
@@ -101,4 +102,6 @@ port map(
 );
 
 Cout <= carry(8);
+V <= Carry(8) XOR Carry(7);
+
 end Structural;
