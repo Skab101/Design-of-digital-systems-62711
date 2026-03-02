@@ -12,7 +12,7 @@ entity FunctionSelect is
     Port (
         FS   : in  STD_LOGIC_vector(3 downto 0 );
         JSel : out STD_LOGIC_VECTOR(3 downto 0);
-        HSel : out STD_LOGIC_VECTOR(3 downto 0);
+        HSel : out STD_LOGIC_VECTOR(1 downto 0);
         MF   : out STD_LOGIC
     );
 end FunctionSelect;
