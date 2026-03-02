@@ -6,12 +6,12 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity FunctionUnit is
     Port (
-        A, B                   : in  STD_LOGIC_VECTOR(7 downto 0);
-        FS3, FS2, FS1, FS0     : in  STD_LOGIC;
-        V, C, N, Z             : out STD_LOGIC;
-        F                      : out STD_LOGIC_VECTOR(7 downto 0)
+        A, B                        : in  STD_LOGIC_VECTOR(7 downto 0);
+        FS3, FS2, FS1, FS0, Cin     : in  STD_LOGIC;
+        V, C, N, Z                  : out STD_LOGIC;
+        F                           : out STD_LOGIC_VECTOR(7 downto 0)
     );
-end FunctionUnit;
+end FunctionUnit;   
 
 architecture FU_Behavorial of FunctionUnit is
 --mangler
@@ -22,9 +22,23 @@ architecture FU_Behavorial of FunctionUnit is
          --     J        : out STD_LOGIC_VECTOR(7 downto 0));
     -- end component;
 
-signal MFsig, Res: STD_LOGIC;
+signal MFsig: STD_LOGIC;
+signal FS: STD_LOGIC_VECTOR(3 downto 0);
+signal Res, HSig, Jsig: STD_LOGIC_VECTOR(7 downto 0);
 
 begin
+FS <= FS0 & FS1 & FS2 & FS3;
+
+U_ALU: entity work.ALU
+port map(
+    A => A,
+    B => B,
+    JSel => FS(3 downto 0),
+    V => V,
+    C => C,
+    Cin => Cin
+);
+
 U_Shifter: entity work.Shifter
 port map(
     B => B,
@@ -42,8 +56,8 @@ port map(
 
 U_MUXF: entity work.MUXF
 port map(
-    J => F,
-    H => F,
+    J => FS(3 downto 0),
+    H => FS(1 downto 0),
     MF => MFsig,
     Y => Res
 );
