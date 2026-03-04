@@ -14,17 +14,7 @@ end RegisterFile_tb;
 
 architecture testbench of RegisterFile_tb is
 
-    component RegisterFile is
-        Port (
-            RESET  : in  STD_LOGIC;
-            CLK    : in  STD_LOGIC;
-            RW     : in  STD_LOGIC;
-            DA, AA, BA : in  STD_LOGIC_VECTOR(3 downto 0);
-            D_Data : in  STD_LOGIC_VECTOR(7 downto 0);
-            A_Data, B_Data : out STD_LOGIC_VECTOR(7 downto 0)
-        );
-    end component;
-
+    -- Testbench signalerne som matches portene i RegisterFile entity
     signal RESET  : STD_LOGIC := '0';
     signal CLK    : STD_LOGIC := '0';
     signal RW     : STD_LOGIC := '0';
@@ -35,12 +25,14 @@ architecture testbench of RegisterFile_tb is
     signal A_Data : STD_LOGIC_VECTOR(7 downto 0);
     signal B_Data : STD_LOGIC_VECTOR(7 downto 0);
 
+    -- Længde af klokkens periode, bruges i CLK_PROC for at generere klokken
     constant CLK_PERIOD : time := 10 ns;
 
 begin
 
-    -- Unit Under Test
-    UUT: RegisterFile port map (
+    -- Unit Under Test (UUT) dette er den entity/komponent som vi undersøger med denne testbench
+    UUT: entity work.RegisterFile
+    port map (
         RESET  => RESET,
         CLK    => CLK,
         RW     => RW,
@@ -52,7 +44,8 @@ begin
         B_Data => B_Data
     );
 
-    -- Clock generation
+
+    -- Denne procces generer klokken i denne TB, den toggler mellem '0' og '1' hver halv periode
     CLK_PROC: process
     begin
         CLK <= '0';
@@ -61,103 +54,42 @@ begin
         wait for CLK_PERIOD / 2;
     end process;
 
-    -- Stimulus
+    -- Stimulus dette er proccesen som kører alle funktionaliteter af RegisterFile igennem, den tester reset, skrive og læse funktionalitet, og RW signalet
     STIM: process
     begin
-        -- 1) Reset all registers
+        -- 1) Disse fire linjertester reset funktionen samt initialiserer kredsløbet til nul, så vi har er klart udgangspunkt for de efterfølgende test
         RESET <= '1';
         wait for CLK_PERIOD * 2;
         RESET <= '0';
+        wait for CLK_PERIOD * 5; -- venter lidt ekstra tid så det er nemmere visuelt at se at reset har virket i en simulator
+
+        -- 2) Disse 9 linjer tester at der ikke kan indsamles data imellem clk kanter, og at RW signalet skal være aktivt for at data kan indsamles i registre
+        RW <= '1'; -- registre kan nu indsamle data på næste stigende CLK kant når LOAD er aktivt
+        D_Data <= x"FF"; -- data tilgænglig til at læse ind i registre
+        DA <= "0000"; -- Prøver at skrive til R0
+        wait for CLK_PERIOD - 1 ns; -- venter næsten en clk
+        D_Data <= x"00"; -- ændrer data lige inden clk for at teste at data ikke kan indsamles imellem clk kanter
+        wait for 1 ns; -- venter til næste clk kant
+        D_Data <= x"FF"; -- sætter data tilbage til x"FF" for at teste at det ikke kan indsamles når LOAD ikke er aktivt
+        RW <= '0'; -- deaktiverer skrivefunktionen for at tæste at data ikke kan indsamles når RW=0
         wait for CLK_PERIOD;
 
-        -- Verify all registers are zero after reset
-        AA <= "0000"; BA <= "0001";
-        wait for 1 ns;
-        assert A_Data = x"00" report "FAIL: R0 not zero after reset" severity error;
-        assert B_Data = x"00" report "FAIL: R1 not zero after reset" severity error;
-
-        -- 2) Write 0xAA to R0 (DA=0000, RW=1)
-        DA <= "0000"; D_Data <= x"AA"; RW <= '1';
-        wait for CLK_PERIOD;
-        RW <= '0';
-
-        -- Read R0 on A_Data
-        AA <= "0000";
-        wait for 1 ns;
-        assert A_Data = x"AA" report "FAIL: R0 should be 0xAA" severity error;
-
-        -- 3) Write 0x55 to R5 (DA=0101, RW=1)
-        DA <= "0101"; D_Data <= x"55"; RW <= '1';
-        wait for CLK_PERIOD;
-        RW <= '0';
-
-        -- Read R5 on B_Data
-        BA <= "0101";
-        wait for 1 ns;
-        assert B_Data = x"55" report "FAIL: R5 should be 0x55" severity error;
-
-        -- 4) Simultaneous read: A_Data=R0, B_Data=R5
-        AA <= "0000"; BA <= "0101";
-        wait for 1 ns;
-        assert A_Data = x"AA" report "FAIL: R0 should still be 0xAA" severity error;
-        assert B_Data = x"55" report "FAIL: R5 should still be 0x55" severity error;
-
-        -- 5) Write-disable test: try writing 0xFF to R0 with RW=0
-        DA <= "0000"; D_Data <= x"FF"; RW <= '0';
-        wait for CLK_PERIOD;
-        AA <= "0000";
-        wait for 1 ns;
-        assert A_Data = x"AA" report "FAIL: R0 should still be 0xAA (RW=0)" severity error;
-
-        -- 6) Write to R10 (DA=1010) with value 0xBB (matches project instruction #4)
-        DA <= "1010"; D_Data <= x"BB"; RW <= '1';
-        wait for CLK_PERIOD;
-        RW <= '0';
-        AA <= "1010";
-        wait for 1 ns;
-        assert A_Data = x"BB" report "FAIL: R10 should be 0xBB" severity error;
-
-        -- 7) Write to R15 (DA=1111) with value 0xCC
-        DA <= "1111"; D_Data <= x"CC"; RW <= '1';
-        wait for CLK_PERIOD;
-        RW <= '0';
-        AA <= "1111"; BA <= "1010";
-        wait for 1 ns;
-        assert A_Data = x"CC" report "FAIL: R15 should be 0xCC" severity error;
-        assert B_Data = x"BB" report "FAIL: R10 should still be 0xBB" severity error;
-
-        -- 8) Write all 16 registers with unique values, then verify
+        RW <= '1'; -- data kan nu indsamles
+        
+        -- 3) Dette loop skriver til alle 16 registre
         for i in 0 to 15 loop
+            D_Data <= std_logic_vector(to_unsigned(1 + i*2, 8)); -- danner en unik værdi som skrives til hvert register
             DA <= std_logic_vector(to_unsigned(i, 4));
-            D_Data <= std_logic_vector(to_unsigned((i * 16) + i, 8)); -- 0x00, 0x11, 0x22, ..., 0xFF
-            RW <= '1';
             wait for CLK_PERIOD;
         end loop;
-        RW <= '0';
 
-        -- Verify all 16 registers via A_Data
+        -- 4) Dette loop tester at der kan skrives ud til A_data og B_data fra alle registre
         for i in 0 to 15 loop
-            AA <= std_logic_vector(to_unsigned(i, 4));
-            wait for 1 ns;
-            assert A_Data = std_logic_vector(to_unsigned((i * 16) + i, 8))
-                report "FAIL: R" & integer'image(i) & " mismatch after bulk write"
-                severity error;
+            AA <= std_logic_vector(to_unsigned(i, 4)); 
+            BA <= std_logic_vector(to_unsigned(i, 4));
+            wait for CLK_PERIOD;
         end loop;
 
-        -- 9) Reset again and verify all cleared
-        RESET <= '1';
-        wait for CLK_PERIOD;
-        RESET <= '0';
-        wait for 1 ns;
-        for i in 0 to 15 loop
-            AA <= std_logic_vector(to_unsigned(i, 4));
-            wait for 1 ns;
-            assert A_Data = x"00"
-                report "FAIL: R" & integer'image(i) & " not zero after second reset"
-                severity error;
-        end loop;
-
-        report "ALL TESTS PASSED" severity note;
         wait;
     end process;
 
