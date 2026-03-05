@@ -64,7 +64,9 @@ architecture Structural of Register8bit is
             Q => Q_reg(i)
         );
 
-        Q <= Q_reg; -- Output port for registerets værdi
-
     end generate;
+
+    -- Skal stå udenfor generate-blokken, ellers oprettes 8 identiske drivere på Q
+    Q <= Q_reg;
+
 end Structural;
