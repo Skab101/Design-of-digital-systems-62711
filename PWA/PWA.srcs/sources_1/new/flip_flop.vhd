@@ -12,7 +12,6 @@ entity flip_flop is
     Port (
         D     : in  STD_LOGIC;
         Reset : in  STD_LOGIC;
-        load  : in  STD_LOGIC;
         clk   : in  STD_LOGIC;
         Q     : out STD_LOGIC
     );
