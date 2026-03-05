@@ -75,7 +75,7 @@ begin
         wait for CLK_PERIOD;
 
         RW <= '1'; -- data kan nu indsamles
-        
+
         -- 3) Dette loop skriver til alle 16 registre
         for i in 0 to 15 loop
             D_Data <= std_logic_vector(to_unsigned(1 + i*2, 8)); -- danner en unik værdi som skrives til hvert register
@@ -85,7 +85,7 @@ begin
 
         -- 4) Dette loop tester at der kan skrives ud til A_data og B_data fra alle registre
         for i in 0 to 15 loop
-            AA <= std_logic_vector(to_unsigned(i, 4)); 
+            AA <= std_logic_vector(to_unsigned(i, 4));
             BA <= std_logic_vector(to_unsigned(i, 4));
             wait for CLK_PERIOD;
         end loop;
