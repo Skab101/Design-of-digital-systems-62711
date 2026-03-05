@@ -47,11 +47,11 @@ port map(
     MF => MFsig
 );
 
-U_MUXF: entity work.MUXF
+U_MUXF: entity work.MUX2x1x8
 port map(
-    J => JSig,
-    H => HSig,
-    MF => MFsig,
+    R => JSig,
+    S => HSig,
+    MUX_Select => MFsig,
     Y => Res
 );
 

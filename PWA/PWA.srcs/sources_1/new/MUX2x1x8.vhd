@@ -9,18 +9,18 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
-entity MUXF is
+entity MUX2x1x8 is
     Port (
-        J, H       : in  STD_LOGIC_VECTOR(7 downto 0);
-        MF         : in  STD_LOGIC;
+        R, S       : in  STD_LOGIC_VECTOR(7 downto 0);
+        MUX_Select : in  STD_LOGIC;
         Y          : out STD_LOGIC_VECTOR(7 downto 0)
     );
-end MUXF;
+end MUX2x1x8;
 
-architecture Structural of MUXF is
+architecture Structural of MUX2x1x8 is
 begin
 
-    Y <= (J AND (7 downto 0 => NOT MF)) OR
-         (H AND (7 downto 0 => MF));
+    Y <= (R AND (7 downto 0 => NOT MUX_Select)) OR
+         (S AND (7 downto 0 => MUX_Select));
 
 end Structural;
