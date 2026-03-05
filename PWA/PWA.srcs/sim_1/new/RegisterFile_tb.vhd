@@ -67,9 +67,9 @@ begin
         RW <= '1'; -- registre kan nu indsamle data på næste stigende CLK kant når LOAD er aktivt
         D_Data <= x"FF"; -- data tilgænglig til at læse ind i registre
         DA <= "0000"; -- Prøver at skrive til R0
-        wait for CLK_PERIOD - 1 ns; -- venter næsten en clk
+        wait for CLK_PERIOD - 6 ns; -- venter næsten en clk
         D_Data <= x"00"; -- ændrer data lige inden clk for at teste at data ikke kan indsamles imellem clk kanter
-        wait for 1 ns; -- venter til næste clk kant
+        wait for 6 ns; -- venter til næste clk kant
         D_Data <= x"FF"; -- sætter data tilbage til x"FF" for at teste at det ikke kan indsamles når LOAD ikke er aktivt
         RW <= '0'; -- deaktiverer skrivefunktionen for at tæste at data ikke kan indsamles når RW=0
         wait for CLK_PERIOD;
