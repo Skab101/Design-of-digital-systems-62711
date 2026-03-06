@@ -35,6 +35,7 @@ architecture Structural of TOP_MODUL is
               ConstantIn  : in  STD_LOGIC_VECTOR(7 downto 0);
               MB          : in  STD_LOGIC;
               FS3, FS2, FS1, FS0 : in  STD_LOGIC;
+              Cin         : in  STD_LOGIC;
               DataIn      : in  STD_LOGIC_VECTOR(7 downto 0);
               MD          : in  STD_LOGIC;
               Address_Out : out STD_LOGIC_VECTOR(7 downto 0);
