@@ -19,7 +19,7 @@ end DestinationDecoder;
 
 architecture dataflow of DestinationDecoder is
 begin
-    -- 4 til 16 bit decoder. udført simpelt ud fra sanhedstabel
+    -- 4 til 16 bit decoder. udført simpelt ud fra sandhedstabel
     LOAD(0)  <= WRITE and (not DA(3) and not DA(2) and not DA(1) and not DA(0));
     LOAD(1)  <= WRITE and (not DA(3) and not DA(2) and not DA(1) and     DA(0));
     LOAD(2)  <= WRITE and (not DA(3) and not DA(2) and     DA(1) and not DA(0));

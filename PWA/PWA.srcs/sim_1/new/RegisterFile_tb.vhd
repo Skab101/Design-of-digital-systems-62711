@@ -57,7 +57,7 @@ begin
     -- Stimulus dette er proccesen som kører alle funktionaliteter af RegisterFile igennem, den tester reset, skrive og læse funktionalitet, og RW signalet
     STIM: process
     begin
-        -- 1) Disse fire linjertester reset funktionen samt initialiserer kredsløbet til nul, så vi har er klart udgangspunkt for de efterfølgende test
+        -- 1) Disse fire linjer tester reset funktionen samt initialiserer kredsløbet til nul, så vi har er klart udgangspunkt for de efterfølgende test
         RESET <= '1';
         wait for CLK_PERIOD * 2;
         RESET <= '0';
