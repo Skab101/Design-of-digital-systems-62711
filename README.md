@@ -6,11 +6,11 @@ This repository contains the Vivado project for the PWA Datapath, including all 
 
 ### Report
 
-[Group03_PWA_Report.pdf](Report/Group03_PWA_Report.pdf)
+[Download latest PDF](https://github.com/gigurd/Design-of-digital-systems-62711/releases/latest/download/main.pdf) (auto-built from LaTeX source)
 
 ### Project Structure
 
-- `Report/` -- Project report PDF
+- `Report/` -- LaTeX source (Overleaf submodule, auto-compiled via GitHub Actions)
 - `PWA/` -- Vivado project (Nexys 4 DDR, xc7a100tcsg324-1)
   - `PWA.srcs/sources_1/` -- 17 VHDL source files
   - `PWA.srcs/sim_1/` -- 16 testbenches
