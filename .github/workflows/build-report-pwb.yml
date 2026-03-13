@@ -1,0 +1,55 @@
+name: Build PWB Report PDF
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Report-PWB/**'
+      - '.github/workflows/build-report-pwb.yml'
+  repository_dispatch:
+    types: [pwb-report-updated]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Update submodule to latest
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git submodule update --remote Report-PWB
+          git add Report-PWB
+          git diff --cached --quiet || git commit -m "Update PWB report submodule to latest"
+          git push
+
+      - name: Compile LaTeX
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          working_directory: Report-PWB
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Group03_PWB_Report
+          path: Report-PWB/main.pdf
+
+      - name: Update latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-pwb
+          name: Latest PWB Report
+          files: Report-PWB/main.pdf
+          make_latest: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
