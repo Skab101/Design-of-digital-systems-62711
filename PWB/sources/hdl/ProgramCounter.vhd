@@ -133,18 +133,21 @@ Counterlogic7: entity work.CounterLogic
     CO      => CarryO
     );
 
+
+    Load  <=     (PS(1) AND PS(0)) OR (PS(1) AND NOT PS(0)); 
+    Count <= NOT  PS(1) AND PS(0); 
+    
     PC     <= PCsig;
     Loadin <= NOT Load;
     Cin0   <= NOT Load AND Count;
     
    
-    MUXP <= ((7 downto 0 => PS(1)) AND ((NOT (7 downto 0 => PS(0))) AND Address_In))
-         OR ((7 downto 0 => PS(1)) AND      ((7 downto 0 => PS(0)) AND sumOffset));
+    MUXP <= ((7 downto 0 => PS(1)) AND ((NOT (7 downto 0 => PS(0))) AND sumOffset))
+         OR ((7 downto 0 => PS(1)) AND      ((7 downto 0 => PS(0)) AND Address_In));
 
     
 
-    Load  <=     (PS(1) AND PS(0)) OR (PS(1) AND NOT PS(0)); 
-    Count <= NOT  PS(1) AND PS(0); 
+  
 
 
 end PC_Structural; 

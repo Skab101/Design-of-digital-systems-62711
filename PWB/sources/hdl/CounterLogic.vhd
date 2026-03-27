@@ -31,7 +31,7 @@ DFlipflop: entity work.flip_flop
 
 Q <= Qsig;
 
-DLogic <= (D AND Load) OR (LoadIn AND (Count XOR QSig)); 
+DLogic <= (D AND Load) OR (LoadIn AND (Cin XOR QSig)); 
 Co <= QSig AND Cin;
 
 
