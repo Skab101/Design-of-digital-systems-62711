@@ -34,4 +34,27 @@ begin
 
     PC <= std_logic_vector(PC_reg);
 
+    --------------------------------------------------------------------------
+    -- Gammelt kombinatorisk design (WIP fra Andreas/Jonas)
+    -- Beholdt som reference — skal rettes før det kan bruges
+    --------------------------------------------------------------------------
+
+    -- full_adder: entity work.full_adder_8_bit
+    -- port map(
+    --         A    => PC,
+    --         B    => MUXP,
+    --         sum  => sum,
+    --         Cin  => Cin,   -- fjernes
+    --         Cout => open,  -- fjernes
+    --         V    => V      -- fjernes
+    -- );
+    --
+    -- MUXP <=   NOT PS(1) AND         PS(0) AND "0x01"  OR   -- FEJL: "0x01" er ikke gyldig VHDL
+    --               PS(1) AND   NOT   PS(0) AND Offset;
+    --
+    -- Address_Out <= ((NOT PS(1) AND NOT PS(0)) AND PC)         OR
+    --                ((NOT PS(1) AND     PS(0)) AND sum)        OR
+    --                ((    PS(1) AND NOT PS(0)) AND sum)        OR
+    --                ((    PS(1) AND     PS(0)) AND Address_In);
+
 end PC_Behavorial;
