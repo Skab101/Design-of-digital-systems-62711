@@ -9,52 +9,145 @@ entity ProgramCounter is
         Address_In : in  STD_LOGIC_VECTOR(7 downto 0);
         PS         : in  STD_LOGIC_VECTOR(1 downto 0);
         Offset     : in  STD_LOGIC_VECTOR(7 downto 0);
+        CarryO     : out STD_LOGIC;
         PC         : out STD_LOGIC_VECTOR(7 downto 0)
     );
 end ProgramCounter;
 
-architecture PC_Behavorial of ProgramCounter is
-    signal PC_reg : unsigned(7 downto 0);
-begin
+architecture PC_Structural of ProgramCounter is
 
-    process(CLK, RESET)
+signal MUXP, CO, sumOffset, PCsig: STD_LOGIC_VECTOR(7 downto 0); 
+signal Load, LoadIn, Cin0, Count: STD_LOGIC;
     begin
-        if RESET = '1' then
-            PC_reg <= (others => '0');
-        elsif rising_edge(CLK) then
-            case PS is
-                when "00"   => PC_reg <= PC_reg;                    -- Hold
-                when "01"   => PC_reg <= PC_reg + 1;                -- Increment
-                when "10"   => PC_reg <= PC_reg + unsigned(Offset); -- Branch
-                when "11"   => PC_reg <= unsigned(Address_In);      -- Jump
-                when others => PC_reg <= PC_reg;
-            end case;
-        end if;
-    end process;
 
-    PC <= std_logic_vector(PC_reg);
 
-    --------------------------------------------------------------------------
-    -- Gammelt kombinatorisk design (WIP fra Andreas/Jonas)
-    -- Beholdt som reference — skal rettes før det kan bruges
-    --------------------------------------------------------------------------
+    full_adder: entity work.full_adder_8_bit
+    port map(
+             A    => PCsig,
+             B    => Offset,
+             sum  => sumOffset,
+             Cin  => '0'
+     );
 
-    -- full_adder: entity work.full_adder_8_bit
-    -- port map(
-    --         A    => PC,
-    --         B    => MUXP,
-    --         sum  => sum,
-    --         Cin  => Cin,   -- fjernes
-    --         Cout => open,  -- fjernes
-    --         V    => V      -- fjernes
-    -- );
-    --
-    -- MUXP <=   NOT PS(1) AND         PS(0) AND "0x01"  OR   -- FEJL: "0x01" er ikke gyldig VHDL
-    --               PS(1) AND   NOT   PS(0) AND Offset;
-    --
-    -- Address_Out <= ((NOT PS(1) AND NOT PS(0)) AND PC)         OR
-    --                ((NOT PS(1) AND     PS(0)) AND sum)        OR
-    --                ((    PS(1) AND NOT PS(0)) AND sum)        OR
-    --                ((    PS(1) AND     PS(0)) AND Address_In);
+    Counterlogic0: entity work.CounterLogic
+    port map(
+    Count   => Count,
+    Reset   => Reset,
+    CLK     => CLK,
+    Load    => Load,
+    LoadIn  => Loadin,
+    D       => MUXP(0),
+    Cin     => Cin0, 
+    Q       => PCsig(0),
+    CO      => CO(0)
+    );
+    
+    Counterlogic1: entity work.CounterLogic
+    port map(
+    Count   => Count,
+    Reset   => Reset,
+    CLK     => CLK,
+    Load    => Load,
+    LoadIn  => Loadin,
+    D       => MUXP(1),
+    Cin     => CO(0),
+    Q       => PCsig(1),
+    CO      => CO(1)
+    );
+    
+    Counterlogic2: entity work.CounterLogic
+    port map(
+    Count   => Count,
+    Reset   => Reset,
+    CLK     => CLK,
+    Load    => Load,
+    LoadIn  => Loadin,
+    D       => MUXP(2),
+    Cin     => CO(1),
+    Q       => PCsig(2),
+    CO      => CO(2)
+    );
+    
+    Counterlogic3: entity work.CounterLogic
+    port map(
+    Count   => Count,
+    Reset   => Reset,
+    CLK     => CLK,
+    Load    => Load,
+    LoadIn  => Loadin,
+    D       => MUXP(3),
+    Cin     => CO(2),
+    Q       => PCsig(3),
+    CO      => CO(3)
+    );
 
-end PC_Behavorial;
+    Counterlogic4: entity work.CounterLogic
+    port map(
+    Count   => Count,
+    Reset   => Reset,
+    CLK     => CLK,
+    Load    => Load,
+    LoadIn  => Loadin,
+    D       => MUXP(4),
+    Cin     => CO(3),
+    Q       => PCsig(4),
+    CO      => CO(4)
+    );
+    
+    Counterlogic5: entity work.CounterLogic
+    port map(
+    Count   => Count,
+    Reset   => Reset,
+    CLK     => CLK,
+    Load    => Load,
+    LoadIn  => Loadin,
+    D       => MUXP(5),
+    Cin     => CO(4),
+    Q       => PCsig(5),
+    CO      => CO(5)
+    );
+    
+Counterlogic6: entity work.CounterLogic
+    port map(
+    Count   => Count,
+    Reset   => Reset,
+    CLK     => CLK,
+    Load    => Load,
+    LoadIn  => Loadin,
+    D       => MUXP(6),
+    Cin     => CO(5),
+    Q       => PCsig(6),
+    CO      => CO(6)
+    );
+
+Counterlogic7: entity work.CounterLogic
+    port map(
+    Count   => Count,
+    Reset   => Reset,
+    CLK     => CLK,
+    Load    => Load,
+    LoadIn  => Loadin,
+    D       => MUXP(7),
+    Cin     => CO(6),
+    Q       => PCsig(7),
+    CO      => CarryO
+    );
+
+
+    Load  <=     (PS(1) AND PS(0)) OR (PS(1) AND NOT PS(0)); 
+    Count <= NOT  PS(1) AND PS(0); 
+    
+    PC     <= PCsig;
+    Loadin <= NOT Load;
+    Cin0   <= NOT Load AND Count;
+    
+   
+    MUXP <= ((7 downto 0 => PS(1)) AND ((NOT (7 downto 0 => PS(0))) AND sumOffset))
+         OR ((7 downto 0 => PS(1)) AND      ((7 downto 0 => PS(0)) AND Address_In));
+
+    
+
+  
+
+
+end PC_Structural; 
