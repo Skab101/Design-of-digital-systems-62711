@@ -32,6 +32,7 @@ begin
         Address_In => Address_In,
         PS         => PS_sig,
         Offset     => Extended_sig,
+        CarryO     => open,
         PC         => PC_sig
     );
 
