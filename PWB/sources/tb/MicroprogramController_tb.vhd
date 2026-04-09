@@ -1,3 +1,4 @@
+--Note: Testbench lavet med hjælp af AI
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -14,7 +15,7 @@ architecture TB of MicroprogramController_tb is
     --   3 = Branch & Jump        (BRZ, BRN, JMP)
     --   4 = Multi-cycle          (LRI, SRM, SLM)
     -- ============================================================
-    constant TEST_GROUP : integer := 1;
+    constant TEST_GROUP : integer := 3;
 
     signal RESET          : std_logic := '1';
     signal CLK            : std_logic := '0';

@@ -1,3 +1,5 @@
+
+--Note: Kommentarer er gjort flotte og inline vha. AI
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
