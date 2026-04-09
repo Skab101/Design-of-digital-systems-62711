@@ -5,7 +5,7 @@ Course repository for 62711 at DTU -- spring 2026. Contains Vivado projects, VHD
 | Phase | Topic | Status | Report |
 |-------|-------|--------|--------|
 | PWA | ALU / DataPath | Completed | [Download PDF](https://github.com/gigurd/Design-of-digital-systems-62711/releases/tag/latest) |
-| PWB | Microprogram Controller | In progress | [Download PDF](https://github.com/gigurd/Design-of-digital-systems-62711/releases/tag/latest-pwb) |
+| PWB | Microprogram Controller | Completed | [Download PDF](https://github.com/gigurd/Design-of-digital-systems-62711/releases/tag/latest-pwb) |
 | PWF | Final Microprocessor | Upcoming | -- |
 
 ---
@@ -25,9 +25,11 @@ Design and implementation of the ALU and DataPath (Register File, Function Unit,
 Design and implementation of the Microprogram Controller (Program Counter, Instruction Register, Sign Extender, Zero Filler, Instruction Decoder/Controller).
 
 - `PWB/` -- Vivado project
-  - `sources/hdl/` -- 6 VHDL source files
+  - `sources/hdl/` -- 12 VHDL source files
   - `sources/tb/` -- 6 testbenches
 - `Report-PWB/` -- LaTeX source (Overleaf submodule, auto-compiled via GitHub Actions)
+- `Submissions/Group03_PWB.zip` -- Cleaned project ready for submission
+- `Submissions/Group03_PWB_Report.pdf` -- Final report PDF
 
 ## PWF -- Final Microprocessor
 
