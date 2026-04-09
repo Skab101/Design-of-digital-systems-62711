@@ -15,17 +15,69 @@ entity MicroprogramController is
     );
 end MicroprogramController;
 
-architecture MCU_Behavorial of MicroprogramController is
+architecture MCU_Structural of MicroprogramController is
 
-    -- TODO: Declare internal signals to wire submodules together
+    signal IR_sig       : std_logic_vector(15 downto 0);
+    signal PS_sig       : std_logic_vector(1 downto 0);
+    signal IL_sig       : std_logic;
+    signal PC_sig       : std_logic_vector(7 downto 0);
+    signal Extended_sig : std_logic_vector(7 downto 0);
 
 begin
 
-    -- TODO: Instantiate ProgramCounter              (1)
-    -- TODO: Instantiate InstructionRegister          (2)
-    -- TODO: Instantiate SignExtender
-    -- TODO: Instantiate ZeroFiller
-    -- TODO: Instantiate InstructionDecoderController (3)
-    -- TODO: Wire Constant_Out from ZeroFiller output
+    PC_inst: entity work.ProgramCounter
+    port map(
+        RESET      => RESET,
+        CLK        => CLK,
+        Address_In => Address_In,
+        PS         => PS_sig,
+        Offset     => Extended_sig,
+        PC         => PC_sig
+    );
 
-end MCU_Behavorial;
+    IR_inst: entity work.InstructionRegister
+    port map(
+        RESET          => RESET,
+        CLK            => CLK,
+        Instruction_In => Instruction_In,
+        IL             => IL_sig,
+        IR             => IR_sig
+    );
+
+    SE_inst: entity work.SignExtender
+    port map(
+        IR         => IR_sig,
+        Extended_8 => Extended_sig
+    );
+
+    ZF_inst: entity work.ZeroFiller
+    port map(
+        IR           => IR_sig,
+        ZeroFilled_8 => Constant_Out
+    );
+
+    IDC_inst: entity work.InstructionDecoderController
+    port map(
+        RESET => RESET,
+        CLK   => CLK,
+        IR    => IR_sig,
+        V     => V,
+        C     => C,
+        N     => N,
+        Z     => Z,
+        PS    => PS_sig,
+        IL    => IL_sig,
+        DX    => DX,
+        AX    => AX,
+        BX    => BX,
+        FS    => FS,
+        MB    => MB,
+        MD    => MD,
+        RW    => RW,
+        MM    => MM,
+        MW    => MW
+    );
+
+    Address_Out <= PC_sig;
+
+end MCU_Structural;
