@@ -54,8 +54,11 @@ architecture PR_Structural of PortReg8x8 is
 
 begin
 
-    -- process(all) er en syntaks som inkluderer alle signaler i sensitivitet-listen 
-    -- hvilket betyder at processen vil blive udført hver gang nogen af disse signaler ændrer sig
+
+    -- process(all) betyder, at processen automatisk er sensitiv over for
+    -- alle signaler, som læses inde i processen.
+    -- I denne proces er det bl.a.: MW, Address_in, Data_In og MR(0..7).
+    -- Dette sikrer korrekt kombinatorisk adfærd og at simulation og hardware stemmer overens.
     process(all)
     begin
 
