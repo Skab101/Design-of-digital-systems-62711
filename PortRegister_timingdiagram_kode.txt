@@ -1,0 +1,48 @@
+Denne note indeholder timing diagrams kode til WaveDrom	
+* Jeg skal huske at ændre dont care til nuller
+
+	{
+  	"signal": [
+      
+    { name: "clk",        "wave": "p.............." },
+
+    { "name": "MW",         "wave": "0.101010......."},
+
+    { "name": "Address",    "wave": "x.3.3.3...3....",
+      "data": ["F8", "F9", "FA", "FB"] },
+
+    { "name": "Data_In",    "wave": "x.3..3.........",
+      "data": ["1234", "ABCD", "00F0"] },
+    
+    {name : "data_write", 	"wave": "3.333333.......",
+     data: ["00",34,"00",12,"00","CD","00"]},
+
+          
+     {name: "Data_outR", wave:"3..33333..3.3..",
+       data:["00",34,"00",12,"00","CD","5A","00"]},
+      
+    { "name": "load(0)",    "wave": "0.10..........." },
+    { "name": "load(1)",    "wave": "0...10........." },
+    { "name": "load(2)",    "wave": "0.....10......." },
+
+    { "name": "MR0",        "wave": "x..3........3..",
+      "data": ["34","00"] },
+
+    { "name": "MR1",        "wave": "x....3......3..",
+      "data": ["12","00"] },
+
+    { "name": "MR2 / LED",  "wave": "x......3....3..",
+      "data": ["CD","00"] },
+      
+      {name: "MR3", wave: "x.........3.3..",
+       data: ["5A","00"] },
+
+    { "name": "SW",         "wave": "3..............",
+      "data": ["5A"] },
+
+    { "name": "BTNR",       "wave": "0........10...."},
+      
+      {name: "RESET", wave: "0...........10."}
+      
+   	],
+      "config" : {"hscale" :1}}

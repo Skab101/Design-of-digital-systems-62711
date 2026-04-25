@@ -10,11 +10,13 @@ use IEEE.STD_LOGIC_1164.ALL;
 --   MR5 (0xFD): BTND input                    -- read-only
 --   MR6 (0xFE): BTNU input                    -- read-only
 --   MR7 (0xFF): BTNC input                    -- read-only
+
 entity PortReg8x8 is
     port (
         clk        : in  STD_LOGIC;
         MW         : in  STD_LOGIC;
-        Data_In    : in  STD_LOGIC_VECTOR(7 downto 0);
+        RESET      : in  STD_LOGIC;
+        Data_In    : in  STD_LOGIC_VECTOR(15 downto 0); -- 16-bit Data_in kommer fra RegisterR16 i datapath
         Address_in : in  STD_LOGIC_VECTOR(7 downto 0);
         SW         : in  STD_LOGIC_VECTOR(7 downto 0);
         BTNC       : in  STD_LOGIC;
@@ -41,49 +43,80 @@ architecture PR_Structural of PortReg8x8 is
         );
     end component;
 
-    -- Outputs of the eight port registers MR0..MR7
-    signal MR0, MR1, MR2, MR3, MR4, MR5, MR6, MR7 : STD_LOGIC_VECTOR(7 downto 0);
+    -- Disse to linjer generer en type af array af std_logic_vector(7 downto 0) 
+    -- samt danner 8 signaler af denne type som bruges til at holde registerværdierne
+    type reg_array is array (7 downto 0) of std_logic_vector(7 downto 0);
+    signal MR : reg_array;
 
-    -- Per-register Load enables
-    signal L0, L1, L2 : STD_LOGIC;
+    signal load : STD_LOGIC_VECTOR(2 downto 0); -- Load signaler for MR0..MR2, genereret fra adresse-dekodning
 
-    -- High when Address_in lies in 0xF8..0xFF (top five bits all '1')
-    signal addr_match : STD_LOGIC;
+    signal write_data : STD_LOGIC_VECTOR(7 downto 0); -- Data til at loade i MR0..MR2 fra Data_In
 
 begin
 
-    addr_match <= '1' when Address_in(7 downto 3) = "11111" else '0';
-    MMR        <= addr_match;
 
-    -- Write enables for the three writable registers
-    L0 <= MW and addr_match when Address_in(2 downto 0) = "000" else '0';
-    L1 <= MW and addr_match when Address_in(2 downto 0) = "001" else '0';
-    L2 <= MW and addr_match when Address_in(2 downto 0) = "010" else '0';
+    -- process(all) betyder, at processen automatisk er sensitiv over for
+    -- alle signaler, som læses inde i processen.
+    -- I denne proces er det bl.a.: MW, Address_in, Data_In og MR(0..7).
+    -- Dette sikrer korrekt kombinatorisk adfærd og at simulation og hardware stemmer overens.
+    process(all)
+    begin
 
-    -- Writable registers (MR0..MR2): data from Data_In, load from MW+address decode
-    U_MR0 : Register8bit port map (D => Data_In, Reset => '0', Load => L0, clk => clk, Q => MR0);
-    U_MR1 : Register8bit port map (D => Data_In, Reset => '0', Load => L1, clk => clk, Q => MR1);
-    U_MR2 : Register8bit port map (D => Data_In, Reset => '0', Load => L2, clk => clk, Q => MR2);
+        load <= (others => '0'); -- Initialiser alle load signaler til 0
 
-    -- Button-driven registers (MR3..MR7): data from SW, load on button press
-    U_MR3 : Register8bit port map (D => SW, Reset => '0', Load => BTNR, clk => clk, Q => MR3);
-    U_MR4 : Register8bit port map (D => SW, Reset => '0', Load => BTNL, clk => clk, Q => MR4);
-    U_MR5 : Register8bit port map (D => SW, Reset => '0', Load => BTND, clk => clk, Q => MR5);
-    U_MR6 : Register8bit port map (D => SW, Reset => '0', Load => BTNU, clk => clk, Q => MR6);
-    U_MR7 : Register8bit port map (D => SW, Reset => '0', Load => BTNC, clk => clk, Q => MR7);
+        write_data <= (others => '0'); -- Initialiser write_data til 0
 
-    -- Read multiplexer: select MRn based on low 3 bits of address, zero-extend to 16 bits
-    with Address_in(2 downto 0) select
-        Data_outR <= x"00" & MR0 when "000",
-                     x"00" & MR1 when "001",
-                     x"00" & MR2 when "010",
-                     x"00" & MR3 when "011",
-                     x"00" & MR4 when "100",
-                     x"00" & MR5 when "101",
-                     x"00" & MR6 when "110",
-                     x"00" & MR7 when others;
+        Data_outR <= (others => '0'); -- Initialiser Data_outR til 0
 
-    D_word <= MR1 & MR0;
-    LED    <= MR2;
+        if MW = '1' then
+
+            -- opdaterer load signaler og write_data ud fra adresse-dekodning
+            case Address_in(2 downto 0) is
+                when "000" => load(0) <= '1', write_data <= Data_In(7 downto 0); -- MR0
+                when "001" => load(1) <= '1', write_data <= Data_In(15 downto 8); -- MR1
+                when "010" => load(2) <= '1', write_data <= Data_In(7 downto 0); -- MR2
+                when others => null; -- Ingen register skal loades
+            end case;
+
+        elsif MW = '0' then
+
+            -- opdaterer Data_outR ud fra adresse-dekodning
+            -- plus forlænger registerværdierne MR(index) til 16 bit ved at sætte de øverste 8 bit til 0
+            case Address_in(2 downto 0) is
+                when "000" => Data_outR <= x"00" & MR(0); -- MR0
+                when "001" => Data_outR <= x"00" & MR(1); -- MR1
+                when "010" => Data_outR <= x"00" & MR(2); -- MR2
+                when "011" => Data_outR <= x"00" & MR(3); -- MR3
+                when "100" => Data_outR <= x"00" & MR(4); -- MR4
+                when "101" => Data_outR <= x"00" & MR(5); -- MR5
+                when "110" => Data_outR <= x"00" & MR(6); -- MR6
+                when "111" => Data_outR <= x"00" & MR(7); -- MR7
+            end case;
+
+        end if;
+
+    end process;
+
+    -- MMR logik sørger for at der ikke læses og skrives samtidigt
+    -- hvilket realiseres via at MW og MMR ikke er høje på samme tid
+    -- samt at MMR kun er aktiv ved de korrekte adresser (0000.0xxx)
+    MMR <= '1' when (Address_in(7 downto 3) = "11111" and MW = '0') else '0';
+
+    -- MR0..MR2 (CPU write)
+    -- syntaksen betyder D => write_data, Reset => RESET, Load => load(index), clk => clk, Q => MR(index)
+    U_MR0 : Register8bit port map (write_data, RESET, load(0), clk, MR(0));
+    U_MR1 : Register8bit port map (write_data, RESET, load(1), clk, MR(1));
+    U_MR2 : Register8bit port map (write_data, RESET, load(2), clk, MR(2));
+
+    -- MR3..MR7 (buttons + SW)
+    U_MR3 : Register8bit port map (SW, RESET, BTNR, clk, MR(3));
+    U_MR4 : Register8bit port map (SW, RESET, BTNL, clk, MR(4));
+    U_MR5 : Register8bit port map (SW, RESET, BTND, clk, MR(5));
+    U_MR6 : Register8bit port map (SW, RESET, BTNU, clk, MR(6));
+    U_MR7 : Register8bit port map (SW, RESET, BTNC, clk, MR(7));
+
+    -- Forbindelser
+    D_word <= MR(1) & MR(0); -- D_Word er sammensat af MR1 (high byte) og MR0 (low byte)
+    LED <= MR(2); -- LED output er forbundet til MR2
 
 end PR_Structural;
