@@ -72,9 +72,9 @@ begin
 
             -- opdaterer load signaler og write_data ud fra adresse-dekodning
             case Address_in(2 downto 0) is
-                when "000" => load(0) <= '1', write_data <= Data_In(7 downto 0); -- MR0
-                when "001" => load(1) <= '1', write_data <= Data_In(15 downto 8); -- MR1
-                when "010" => load(2) <= '1', write_data <= Data_In(7 downto 0); -- MR2
+                when "000" => load(0) <= '1'; write_data <= Data_In(7 downto 0); -- MR0
+                when "001" => load(1) <= '1'; write_data <= Data_In(7 downto 0); -- MR1
+                when "010" => load(2) <= '1'; write_data <= Data_In(7 downto 0); -- MR2
                 when others => null; -- Ingen register skal loades
             end case;
 
@@ -91,6 +91,7 @@ begin
                 when "101" => Data_outR <= x"00" & MR(5); -- MR5
                 when "110" => Data_outR <= x"00" & MR(6); -- MR6
                 when "111" => Data_outR <= x"00" & MR(7); -- MR7
+                when others => Data_outR <= (others => '0'); -- daekker meta-vaerdier (X, U, ...)
             end case;
 
         end if;
