@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="PortReg8x8_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="PortReg8x8_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="99.472 ns"></ZoomEndTime>
+      <Cursor1Time time="21.934 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="113"></NameColumnWidth>
+      <ValueColumnWidth column_width="61"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="15" />
+   <wvobject fp_name="/PortReg8x8_tb/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/MW" type="logic">
+      <obj_property name="ElementShortName">MW</obj_property>
+      <obj_property name="ObjectShortName">MW</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/Address_in" type="array">
+      <obj_property name="ElementShortName">Address_in[7:0]</obj_property>
+      <obj_property name="ObjectShortName">Address_in[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/Data_In" type="array">
+      <obj_property name="ElementShortName">Data_In[15:0]</obj_property>
+      <obj_property name="ObjectShortName">Data_In[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/UUT/write_data" type="array">
+      <obj_property name="ElementShortName">write_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">write_data[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/Data_outR" type="array">
+      <obj_property name="ElementShortName">Data_outR[15:0]</obj_property>
+      <obj_property name="ObjectShortName">Data_outR[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/UUT/load" type="array">
+      <obj_property name="ElementShortName">load[2:0]</obj_property>
+      <obj_property name="ObjectShortName">load[2:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/UUT/MR[0]" type="array">
+      <obj_property name="ElementShortName">[0][7:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/UUT/MR[1]" type="array">
+      <obj_property name="ElementShortName">[1][7:0]</obj_property>
+      <obj_property name="ObjectShortName">[1][7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/UUT/MR[2]" type="array">
+      <obj_property name="ElementShortName">[2][7:0]</obj_property>
+      <obj_property name="ObjectShortName">[2][7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/UUT/MR[3]" type="array">
+      <obj_property name="ElementShortName">[3][7:0]</obj_property>
+      <obj_property name="ObjectShortName">[3][7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/SW" type="array">
+      <obj_property name="ElementShortName">SW[7:0]</obj_property>
+      <obj_property name="ObjectShortName">SW[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/BTNR" type="logic">
+      <obj_property name="ElementShortName">BTNR</obj_property>
+      <obj_property name="ObjectShortName">BTNR</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/UUT/MMR" type="logic">
+      <obj_property name="ElementShortName">MMR</obj_property>
+      <obj_property name="ObjectShortName">MMR</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PortReg8x8_tb/RESET" type="logic">
+      <obj_property name="ElementShortName">RESET</obj_property>
+      <obj_property name="ObjectShortName">RESET</obj_property>
+   </wvobject>
+</wave_config>
