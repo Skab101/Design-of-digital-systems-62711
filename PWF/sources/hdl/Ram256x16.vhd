@@ -2,17 +2,16 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
--- Xilinx primitive libraries for the BRAM_SINGLE_MACRO instantiation
-library UNISIM;
-use UNISIM.vcomponents.all;
-
-library UNIMACRO;
-use UNIMACRO.vcomponents.all;
-
--- 256 x 16-bit Single Port Block RAM
--- Uses Artix-7 BRAM_SINGLE_MACRO primitive (18Kb, 16-bit width)
--- The primitive has 10-bit address (1024 entries); we only use 256 of them
--- by padding the 8-bit Address_in with two zeros.
+-- 256 x 16-bit single-port RAM (inferred Block RAM)
+--
+-- Vivado's syntese udleder Block RAM fra moenstret nedenfor (clocked
+-- write + clocked read i samme proces). Til gengaeld for behavioral
+-- simulering: data initialiseres deterministisk via init_ram-funktionen,
+-- saa xsim ikke har problemer med UNIMACRO/GLBL og BRAM-makroer.
+--
+-- RAM clocked paa FALDENDE kant saa data er klar paa naeste stigende
+-- kant hvor IR i MPC latcher. PWB's IDC asserterer MM=1 og IL=1 i samme
+-- INF-cyklus, hvilket forudsaetter ~0-cyklus memory read.
 entity Ram256x16 is
     port (
         clk        : in  STD_LOGIC;
@@ -24,57 +23,67 @@ entity Ram256x16 is
     );
 end Ram256x16;
 
-architecture RAM_Structural of Ram256x16 is
+architecture RAM_Inferred of Ram256x16 is
 
-    -- Padded 10-bit address for the BRAM primitive
-    signal ADDR_full : STD_LOGIC_VECTOR(9 downto 0);
-    -- Byte write enable: 2 bits for 16-bit width in 18Kb mode
-    signal WE_sig    : STD_LOGIC_VECTOR(1 downto 0);
+    type ram_t is array (0 to 255) of STD_LOGIC_VECTOR(15 downto 0);
+
+    -- Microcode-program. Disassembleret fra examples/sum_demo.asm.
+    -- PROGRAM_INIT_BEGIN
+    function init_ram return ram_t is
+        variable r : ram_t := (others => x"0000");
+    begin
+        r(16#00#) := x"99C7";  -- ldi  R7, 7
+        r(16#01#) := x"E038";  -- jmp  R7
+        r(16#02#) := x"00FA";  -- .word A_MR2
+        r(16#03#) := x"00F8";  -- .word A_MR0
+        r(16#04#) := x"00F9";  -- .word A_MR1
+        r(16#05#) := x"00FB";  -- .word A_MR3
+        r(16#06#) := x"00FC";  -- .word A_MR4
+        r(16#07#) := x"9805";  -- ldi  R0, 5
+        r(16#08#) := x"20C0";  -- ld   R3, R0
+        r(16#09#) := x"9806";  -- ldi  R0, 6
+        r(16#0A#) := x"2100";  -- ld   R4, R0
+        r(16#0B#) := x"2058";  -- ld   R1, R3
+        r(16#0C#) := x"20A0";  -- ld   R2, R4
+        r(16#0D#) := x"058A";  -- add  R6, R1, R2
+        r(16#0E#) := x"9802";  -- ldi  R0, 2
+        r(16#0F#) := x"2140";  -- ld   R5, R0
+        r(16#10#) := x"402E";  -- st   R5, R6
+        r(16#11#) := x"9803";  -- ldi  R0, 3
+        r(16#12#) := x"2140";  -- ld   R5, R0
+        r(16#13#) := x"402E";  -- st   R5, R6
+        r(16#14#) := x"9804";  -- ldi  R0, 4
+        r(16#15#) := x"2140";  -- ld   R5, R0
+        r(16#16#) := x"4029";  -- st   R5, R1
+        r(16#17#) := x"E038";  -- jmp  R7
+        return r;
+    end function;
+    -- PROGRAM_INIT_END
+
+    signal ram      : ram_t := init_ram;
+    signal addr_int : integer range 0 to 255;
 
 begin
 
-    ADDR_full <= "00" & Address_in;
-    WE_sig    <= (others => MW);
+    addr_int <= to_integer(unsigned(Address_in));
 
-    BRAM_SINGLE_MACRO_inst : BRAM_SINGLE_MACRO
-    generic map (
-        BRAM_SIZE   => "18Kb",       -- 18Kb is smallest mode supporting 16-bit width
-        DEVICE      => "7SERIES",    -- Artix-7
-        DO_REG      => 0,            -- No output register (synchronous read)
-        INIT        => X"0000",      -- Initial value on output port
-        -- PROGRAM_INIT_BEGIN (managed by dsdasm.py -- do not edit by hand)
-        INIT_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_04 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_05 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_06 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_07 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_08 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_09 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_0A => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_0B => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_0C => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_0D => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_0E => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_0F => X"0000000000000000000000000000000000000000000000000000000000000000",
-        -- PROGRAM_INIT_END
-        INIT_FILE   => "NONE",
-        WRITE_WIDTH => 16,
-        READ_WIDTH  => 16,
-        SRVAL       => X"0000",      -- Set/Reset value for output
-        WRITE_MODE  => "WRITE_FIRST" -- On simultaneous read+write, output = new data
-    )
-    port map (
-        DO    => Data_out,     -- 16-bit output data
-        ADDR  => ADDR_full,    -- 10-bit address
-        CLK   => clk,
-        DI    => Data_in,      -- 16-bit input data
-        EN    => '1',          -- RAM always enabled
-        REGCE => '1',          -- Output register clock enable (unused since DO_REG=0)
-        RST   => Reset,        -- Synchronous reset of output latch
-        WE    => WE_sig        -- Write enable vector (both bits tied to MW)
-    );
+    -- Falling-edge clocked synchronous RAM med write-first-konvention.
+    -- Reset er synkron og nulstiller udelukkende output-latch'en
+    -- (RAM-indholdet bevares).
+    process(clk)
+    begin
+        if falling_edge(clk) then
+            if Reset = '1' then
+                Data_out <= (others => '0');
+            else
+                if MW = '1' then
+                    ram(addr_int) <= Data_in;
+                    Data_out      <= Data_in;        -- WRITE_FIRST
+                else
+                    Data_out      <= ram(addr_int);
+                end if;
+            end if;
+        end if;
+    end process;
 
-end RAM_Structural;
+end RAM_Inferred;

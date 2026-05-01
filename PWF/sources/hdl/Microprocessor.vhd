@@ -51,13 +51,125 @@ architecture MP_Structural of Microprocessor is
 
 begin
 
-    -- TODO: MUX M (Mem_Address selector)
-    -- TODO: Zero fill Data_Out_DP to 16 bits for RAM
-    -- TODO: Instantiate Datapath (from PWA)
-    -- TODO: Instantiate MicroprogramController (from PWB)
-    -- TODO: Instantiate Ram256x16
-    -- TODO: Instantiate PortReg8x8
-    -- TODO: Instantiate MUX_MR
-    -- TODO: Wire Data_Bus_Out to MPC Instruction_In and Datapath DataIn
+    -- ==========================================================
+    -- MUX M: vaelger memory-adressen
+    --   MM='1' -> instruktions-fetch, brug PC (Address_Out_PC)
+    --   MM='0' -> operand-adgang,    brug Datapath (Address_Out_DP)
+    -- ==========================================================
+    Mem_Address <= Address_Out_PC when MM_sig = '1' else Address_Out_DP;
+
+    -- ==========================================================
+    -- Zero Filler: 8-bit Data_Out fra Datapath -> 16-bit til RAM/PortReg
+    -- Den oeverste byte saettes til 0; lav byte indeholder data.
+    -- ==========================================================
+    ZF_inst : entity work.Zero_Filler_2
+        port map (
+            Data_Out => Data_Out_DP,
+            Data_ZF  => Data_In_RAM
+        );
+
+    -- ==========================================================
+    -- Datapath (PWA): register file + ALU + flags
+    -- Cin er ikke leveret af MPC; tied til '0'. Det betyder at
+    -- SUB/ADC-instruktioner ikke virker, men ADD/LD/ST/JMP gor.
+    -- ==========================================================
+    DP_inst : entity work.Datapath
+        port map (
+            RESET       => RESET,
+            CLK         => CLK,
+            RW          => RW_sig,
+            DA          => DX_sig,
+            AA          => AX_sig,
+            BA          => BX_sig,
+            ConstantIn  => Constant_Out,
+            MB          => MB_sig,
+            FS3         => FS_sig(3),
+            FS2         => FS_sig(2),
+            FS1         => FS_sig(1),
+            FS0         => FS_sig(0),
+            Cin         => '0',
+            DataIn      => Data_Bus_Out(7 downto 0),
+            MD          => MD_sig,
+            Address_Out => Address_Out_DP,
+            Data_Out    => Data_Out_DP,
+            V           => V_sig,
+            C           => C_sig,
+            N           => N_sig,
+            Z           => Z_sig
+        );
+
+    -- ==========================================================
+    -- Microprogram Controller (PWB): IR + PC + IDC + ZF + SE
+    -- ==========================================================
+    MPC_inst : entity work.MicroprogramController
+        port map (
+            RESET          => RESET,
+            CLK            => CLK,
+            Address_In     => Address_Out_DP,
+            Address_Out    => Address_Out_PC,
+            Instruction_In => Data_Bus_Out,
+            Constant_Out   => Constant_Out,
+            V              => V_sig,
+            C              => C_sig,
+            N              => N_sig,
+            Z              => Z_sig,
+            DX             => DX_sig,
+            AX             => AX_sig,
+            BX             => BX_sig,
+            FS             => FS_sig,
+            MB             => MB_sig,
+            MD             => MD_sig,
+            RW             => RW_sig,
+            MM             => MM_sig,
+            MW             => MW_sig
+        );
+
+    -- ==========================================================
+    -- 256 x 16 RAM med microcode i INIT
+    -- ==========================================================
+    RAM_inst : entity work.Ram256x16
+        port map (
+            clk        => CLK,
+            Reset      => RESET,
+            Data_in    => Data_In_RAM,
+            Address_in => Mem_Address,
+            MW         => MW_sig,
+            Data_out   => Data_outM
+        );
+
+    -- ==========================================================
+    -- Port Register: memory-mapped I/O paa 0xF8..0xFF
+    -- ==========================================================
+    PR_inst : entity work.PortReg8x8
+        port map (
+            clk        => CLK,
+            MW         => MW_sig,
+            RESET      => RESET,
+            Data_In    => Data_In_RAM,
+            Address_in => Mem_Address,
+            SW         => SW,
+            BTNC       => BTNC,
+            BTNU       => BTNU,
+            BTNL       => BTNL,
+            BTNR       => BTNR,
+            BTND       => BTND,
+            MMR        => MMR_sig,
+            D_word     => D_Word,
+            Data_outR  => Data_outR,
+            LED        => LED
+        );
+
+    -- ==========================================================
+    -- MUX MR: vaelger mellem RAM- og PortReg-output
+    --   MMR='0' -> RAM     (Data_outM)
+    --   MMR='1' -> PortReg (Data_outR)
+    -- ==========================================================
+    MUXMR_inst : entity work.MUX_MR
+        port map (
+            Data_outM    => Data_outM,
+            Data_outR    => Data_outR,
+            MMR          => MMR_sig,
+            Data_Bus_Out => Data_Bus_Out
+        );
 
 end MP_Structural;
