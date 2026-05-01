@@ -54,12 +54,7 @@ architecture PR_Structural of PortReg8x8 is
 
 begin
 
-
-    -- process(all) betyder, at processen automatisk er sensitiv over for
-    -- alle signaler, som læses inde i processen.
-    -- I denne proces er det bl.a.: MW, Address_in, Data_In og MR(0..7).
-    -- Dette sikrer korrekt kombinatorisk adfærd og at simulation og hardware stemmer overens.
-    process(all)
+    process(MW, Address_In, Data_In, MR)
     begin
 
         load <= (others => '0'); -- Initialiser alle load signaler til 0
