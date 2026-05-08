@@ -2,23 +2,25 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
--- Top-level Microprocessor testbench
+-- Top-level Microprocessor testbench -- teammate's wrong code
 --
--- Verificerer at hele systemet (Datapath + MPC + RAM + PortReg + MUX_MR)
--- kører switch_echo-programmet i RAM korrekt:
---   1) Sæt SW og pulse BTNC -> MR7 latches SW
---   2) CPU'en loop'er konstant og kopierer MR7 til:
---        - LED       (MR2)
---        - 7-seg low (MR0)
---   3) Vi læser LED og D_Word(7:0) tilbage og verificerer at de matcher SW
+-- Programmet i RAM er teammate_wrong.asm. Det HER TB tester den ADFAERD
+-- TEAMMATE'EN INTENDEREDE (SW -> LED + 7-seg, looper på BTNR-tryk),
+-- så fejlede assertions afslører fejlene i programmet.
 --
--- BTNR/BTNL/BTND/BTNU bruges IKKE af programmet -- TB tester også at en
--- pulse på BTNR ikke ændrer LED (MR3 bliver latched, men programmet
--- læser kun MR7).
+-- Forventede fejl ved kørsel:
+--   - TEST 1 LED  : burde virke (programmet skriver LED korrekt før den
+--                   gale JMP)
+--   - TEST 1 7seg : FEJL -- programmet skriver aldrig MR0/MR1
+--   - TEST 2 LED  : FEJL -- JMP'en hopper til 0xF9 (I/O-space) i stedet
+--                   for tilbage til programstart, så CPU'en eksekverer
+--                   I/O-registre som instruktioner og bliver korrupt.
+--                   Anden BTNR-tryk propageres derfor ikke.
+--   - TEST 2 7seg : FEJL -- som ovenfor + ingen MR0-skrivning
 --
--- D_Word(15:8) er IKKE verificeret -- programmet skriver ikke til MR1,
--- så de øverste 7-seg cifre forbliver blanke. Det er bevidst i denne
--- enkle demo.
+-- Prøv at åbne wave-viewet og se PC, R-registre og MR-registre over tid
+-- for at se præcis hvor det går galt.
+
 entity Microprocessor_tb is
 end Microprocessor_tb;
 
@@ -32,19 +34,10 @@ architecture TB of Microprocessor_tb is
     signal D_Word : STD_LOGIC_VECTOR(15 downto 0);
 
     constant CLK_PERIOD : time := 10 ns;
-
-    -- En fuld iteration af switch_echo-loop'et er ca. 10-12 klokker
-    -- (1x LD + 2x ST + 1x JMP, hver 2-3 cyklusser). Vi venter generøst
-    -- så output når at stabilisere.
-    constant LOOP_WAIT : time := CLK_PERIOD * 200;
+    constant LOOP_WAIT  : time := CLK_PERIOD * 300;
 
 begin
 
-    -- I simulering driver vi både CLK og CLK_CPU fra samme signal -- vi vil
-    -- verificere at omkoblingen til to-klok-interfacet er korrekt, og
-    -- DivClk'en selv er triviel nok til ikke at kræve sit eget testbench.
-    -- På boardet kører CLK_CPU = CLK/2 (BUFG'et) men funktionel korrekthed
-    -- afhænger ikke af det.
     UUT: entity work.Microprocessor
         port map (
             CLK     => CLK,
@@ -68,7 +61,6 @@ begin
 
     stim_process: process
 
-        -- Pulser en knap i én klokcyklus med given SW-værdi
         procedure press_button(
             signal btn   : out std_logic;
             constant val : in  std_logic_vector(7 downto 0)
@@ -92,51 +84,50 @@ begin
         wait for CLK_PERIOD;
 
         -- ============================================
-        -- TEST 1: SW=0x42, BTNC pulse -> LED og 7-seg low = 0x42
+        -- TEST 1: SW=0x42 + BTNR -> intenderet: LED=0x42, D_Word=0x0042
+        -- Forventet udfald:
+        --   LED  = 0x42  (PASS -- programmet når at skrive LED)
+        --   7seg = 0x42  (FAIL -- programmet skriver aldrig MR0)
         -- ============================================
-        press_button(BTNC, x"42");
+        press_button(BTNR, x"42");
         wait for LOOP_WAIT;
 
         assert LED = x"42"
-            report "TEST 1 LED fejlede: forventet 0x42 (SW echo via BTNC)"
+            report "TEST 1 LED fejlede: forventet 0x42 (programmet burde skrive LED)"
             severity error;
 
         assert D_Word(7 downto 0) = x"42"
-            report "TEST 1 D_Word(7:0) fejlede: forventet 0x42 (SW echo på 7-seg low)"
+            report "TEST 1 7-seg fejlede: forventet 0x42 -- programmet skriver aldrig MR0/MR1, så 7-seg er blank. BUG: mangler ST'er til 0xF8/0xF9 efter NOT/INC."
             severity error;
 
         -- ============================================
-        -- TEST 2: SW=0xA5, ny BTNC pulse -> display opdateres
+        -- TEST 2: SW=0xA5 + BTNR -> intenderet: LED=0xA5
+        -- Forventet udfald:
+        --   LED forventes 0xA5, men hvis JMP-bug'en gør CPU'en
+        --   korrupt, kan det vaere noget andet.
         -- ============================================
-        press_button(BTNC, x"A5");
+        press_button(BTNR, x"A5");
         wait for LOOP_WAIT;
 
         assert LED = x"A5"
-            report "TEST 2 LED fejlede: forventet 0xA5 efter ny BTNC pulse"
+            report "TEST 2 LED fejlede: forventet 0xA5 efter ny BTNR-tryk. BUG: JMP R7 (R7=0xF9) hopper til I/O-space i stedet for at loope tilbage til programstart."
+            severity error;
+
+        assert D_Word(7 downto 0) = x"A5"
+            report "TEST 2 7-seg fejlede: forventet 0xA5 -- programmet skriver aldrig MR0/MR1."
             severity error;
 
         -- ============================================
-        -- TEST 3: SW=0x99 + BTNR pulse -> LED holder 0xA5
-        -- (BTNR latcher MR3, ikke MR7 -- programmet læser kun MR7)
+        -- TEST 3: SW=0xFF + BTNR -> intenderet: LED=0xFF
         -- ============================================
-        press_button(BTNR, x"99");
-        wait for LOOP_WAIT;
-
-        assert LED = x"A5"
-            report "TEST 3 LED fejlede: forventet 0xA5 (uændret -- BTNR ændrer ikke MR7)"
-            severity error;
-
-        -- ============================================
-        -- TEST 4: SW=0xFF, BTNC pulse -> alle LED tændt
-        -- ============================================
-        press_button(BTNC, x"FF");
+        press_button(BTNR, x"FF");
         wait for LOOP_WAIT;
 
         assert LED = x"FF"
-            report "TEST 4 LED fejlede: forventet 0xFF"
+            report "TEST 3 LED fejlede: forventet 0xFF -- bekraefter at loop'et er broken (samme JMP-bug som TEST 2)."
             severity error;
 
-        report "=== Alle Microprocessor switch_echo tests bestået ===" severity note;
+        report "=== TB faerdig -- tjek hvilke assertions der fejlede for at se bug-summary ===" severity note;
         wait;
     end process;
 
