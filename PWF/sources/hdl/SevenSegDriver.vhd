@@ -3,10 +3,10 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 -- 4-cifret 7-segment driver med tidsmultipleksning til Nexys 4 DDR.
--- Viser de 16-bit D_Word som 4 hex-cifre paa de fire hoejre digits;
+-- Viser de 16-bit D_Word som 4 hex-cifre på de fire højre digits;
 -- de fire venstre digits holdes slukkede.
 --
--- Refresh-taeller dividerer 100 MHz ned saa hver enkelt digit lyser
+-- Refresh-tæller dividerer 100 MHz ned så hver enkelt digit lyser
 -- ca. 380 Hz (fuld scan ~95 Hz x 4 digits) -- glat og uden flicker.
 entity SevenSegDriver is
     port (
@@ -21,8 +21,8 @@ end SevenSegDriver;
 
 architecture SSD_Behavorial of SevenSegDriver is
 
-    -- 18-bit refresh-taeller. Bits (17 downto 16) bruges som digit-vaelger,
-    -- saa hver digit-slot er 2^16 = 65536 klokker = ~655 us @100 MHz.
+    -- 18-bit refresh-tæller. Bits (17 downto 16) bruges som digit-vælger,
+    -- så hver digit-slot er 2^16 = 65536 klokker = ~655 us @100 MHz.
     -- Fuld scan = 4 slots = ~2.6 ms (~380 Hz per digit).
     signal refresh_cnt : unsigned(17 downto 0) := (others => '0');
     signal disp_cnt    : std_logic_vector(1 downto 0);
@@ -33,7 +33,7 @@ architecture SSD_Behavorial of SevenSegDriver is
 begin
 
     -- ---------------------------------------------------------------
-    -- Refresh-taeller (synkron, asynkron reset)
+    -- Refresh-tæller (synkron, asynkron reset)
     -- ---------------------------------------------------------------
     DispCountReg: process(clk, reset)
     begin
@@ -47,16 +47,16 @@ begin
     disp_cnt <= std_logic_vector(refresh_cnt(17 downto 16));
 
     -- ---------------------------------------------------------------
-    -- Anode-vaelger og nibble-mux
-    -- Anode er active-low: '0' = digit taendt, '1' = digit slukket.
-    -- Vi bruger kun de fire hoejre digits (Anode(3..0)); Anode(7..4)
-    -- er altid '1' saa de fire venstre digits forbliver slukkede.
+    -- Anode-vælger og nibble-mux
+    -- Anode er active-low: '0' = digit tændt, '1' = digit slukket.
+    -- Vi bruger kun de fire højre digits (Anode(3..0)); Anode(7..4)
+    -- er altid '1' så de fire venstre digits forbliver slukkede.
     -- ---------------------------------------------------------------
     DispCountDec: process(disp_cnt, D_Word)
     begin
         case disp_cnt is
             when "00" =>
-                Anode  <= "11111110";              -- digit 0 (laengst til hoejre)
+                Anode  <= "11111110";              -- digit 0 (længst til højre)
                 nibble <= D_Word(3 downto 0);
             when "01" =>
                 Anode  <= "11111101";              -- digit 1
@@ -65,7 +65,7 @@ begin
                 Anode  <= "11111011";              -- digit 2
                 nibble <= D_Word(11 downto 8);
             when others =>
-                Anode  <= "11110111";              -- digit 3 (laengst til venstre af de aktive)
+                Anode  <= "11110111";              -- digit 3 (længst til venstre af de aktive)
                 nibble <= D_Word(15 downto 12);
         end case;
     end process;

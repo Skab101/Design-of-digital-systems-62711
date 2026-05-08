@@ -52,7 +52,7 @@ architecture MP_Structural of Microprocessor is
 begin
 
     -- ==========================================================
-    -- MUX M: vaelger memory-adressen
+    -- MUX M: vælger memory-adressen
     --   MM='1' -> instruktions-fetch, brug PC (Address_Out_PC)
     --   MM='0' -> operand-adgang,    brug Datapath (Address_Out_DP)
     -- ==========================================================
@@ -60,7 +60,7 @@ begin
 
     -- ==========================================================
     -- Zero Filler: 8-bit Data_Out fra Datapath -> 16-bit til RAM/PortReg
-    -- Den oeverste byte saettes til 0; lav byte indeholder data.
+    -- Den øverste byte sættes til 0; lav byte indeholder data.
     -- ==========================================================
     ZF_inst : entity work.Zero_Filler_2
         port map (
@@ -71,7 +71,7 @@ begin
     -- ==========================================================
     -- Datapath (PWA): register file + ALU + flags
     -- Cin er ikke leveret af MPC; tied til '0'. Det betyder at
-    -- SUB/ADC-instruktioner ikke virker, men ADD/LD/ST/JMP gor.
+    -- SUB/ADC-instruktioner ikke virker, men ADD/LD/ST/JMP gør.
     -- ==========================================================
     DP_inst : entity work.Datapath
         port map (
@@ -126,11 +126,14 @@ begin
 
     -- ==========================================================
     -- 256 x 16 RAM med microcode i INIT
+    -- Reset er tied til '0': BRAM'ens INIT-data ER programmet og må
+    -- ikke nulstilles. RST i BRAM-makroen nulstiller kun output-latch'en
+    -- (ikke selve indholdet), men selv den gating er unødig her.
     -- ==========================================================
     RAM_inst : entity work.Ram256x16
         port map (
             clk        => CLK,
-            Reset      => RESET,
+            Reset      => '0',
             Data_in    => Data_In_RAM,
             Address_in => Mem_Address,
             MW         => MW_sig,
@@ -138,7 +141,7 @@ begin
         );
 
     -- ==========================================================
-    -- Port Register: memory-mapped I/O paa 0xF8..0xFF
+    -- Port Register: memory-mapped I/O på 0xF8..0xFF
     -- ==========================================================
     PR_inst : entity work.PortReg8x8
         port map (
@@ -160,7 +163,7 @@ begin
         );
 
     -- ==========================================================
-    -- MUX MR: vaelger mellem RAM- og PortReg-output
+    -- MUX MR: vælger mellem RAM- og PortReg-output
     --   MMR='0' -> RAM     (Data_outM)
     --   MMR='1' -> PortReg (Data_outR)
     -- ==========================================================

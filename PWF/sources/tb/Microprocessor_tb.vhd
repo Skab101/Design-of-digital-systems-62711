@@ -5,18 +5,18 @@ use IEEE.NUMERIC_STD.ALL;
 -- Top-level Microprocessor testbench
 --
 -- Verificerer at hele systemet (Datapath + MPC + RAM + PortReg + MUX_MR)
--- koerer sum_demo-programmet i RAM korrekt:
+-- kører sum_demo-programmet i RAM korrekt:
 --   1) BTNR-tryk med SW = operand A latcher MR3
 --   2) BTNL-tryk med SW = operand B latcher MR4
 --   3) Programmet beregner R6 = MR3 + MR4 i sin loop og skriver:
 --        - LED      <- R6  (MR2)
 --        - 7-seg lav <- R6  (MR0)
---   4) Vi laeser LED og D_Word(7:0) tilbage og verificerer summen.
+--   4) Vi læser LED og D_Word(7:0) tilbage og verificerer summen.
 --
 -- D_Word(15:8) er IKKE verificeret -- pga MR1-byte-konventionen
--- (MR1 latcher Data_In(15:8) men Zero_Filler_2 saetter den til 0)
--- forbliver de oeverste 7-seg-cifre blanke. Det er en kendt
--- begraensning i den nuvaerende design og er udenfor denne TB's scope.
+-- (MR1 latcher Data_In(15:8) men Zero_Filler_2 sætter den til 0)
+-- forbliver de øverste 7-seg-cifre blanke. Det er en kendt
+-- begrænsning i den nuværende design og er udenfor denne TB's scope.
 entity Microprocessor_tb is
 end Microprocessor_tb;
 
@@ -33,7 +33,7 @@ architecture TB of Microprocessor_tb is
 
     -- En fuld iteration af sum_demo-loop'et er ca. 40 klokker
     -- (5x LDI + 6x LD + 1x ADD + 3x ST + 1x JMP, hver 2-3 cyklusser).
-    -- Vi venter generoest saa output naar at stabilisere.
+    -- Vi venter generøst så output når at stabilisere.
     constant LOOP_WAIT : time := CLK_PERIOD * 300;
 
 begin
@@ -60,7 +60,7 @@ begin
 
     stim_process: process
 
-        -- Pulser en knap i én klokcyklus med given SW-vaerdi
+        -- Pulser en knap i én klokcyklus med given SW-værdi
         procedure press_button(
             signal btn   : out std_logic;
             constant val : in  std_logic_vector(7 downto 0)
@@ -95,7 +95,7 @@ begin
             severity error;
 
         assert D_Word(7 downto 0) = x"15"
-            report "TEST 1 D_Word(7:0) fejlede: forventet 0x15 (sum paa 7-seg low) - se D_Word i wave"
+            report "TEST 1 D_Word(7:0) fejlede: forventet 0x15 (sum på 7-seg low) - se D_Word i wave"
             severity error;
 
         -- ============================================
@@ -132,7 +132,7 @@ begin
             report "TEST 4 LED fejlede: forventet 0x00 (0xFF+0x01 = overflow) - se LED i wave"
             severity error;
 
-        report "=== Alle Microprocessor sum_demo tests bestaaet ===" severity note;
+        report "=== Alle Microprocessor sum_demo tests bestået ===" severity note;
         wait;
     end process;
 
