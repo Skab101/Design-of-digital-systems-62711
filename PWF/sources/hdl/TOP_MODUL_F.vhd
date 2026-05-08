@@ -5,13 +5,13 @@ use IEEE.STD_LOGIC_1164.ALL;
 -- Wraps the Microprocessor core and connects it to the physical pins
 -- (constraints in Nexys_4_DDR_Master.xdc).
 --
--- RESETN er active-low (matcher boardets CPU_RESETN-pin: '1' i hvile,
--- '0' når der trykkes). Internt bruger alle CPU-modulerne active-high
--- RESET, så vi inverterer RESETN her i toppen.
+-- RESET er bundet til boardets CPU_RESETN-pin (C12) som er active-low:
+-- '1' i hvile, '0' når der trykkes. Internt bruger alle CPU-modulerne
+-- active-high reset, så vi inverterer her i toppen.
 entity TOP_MODUL_F is
     port (
         CLK      : in  STD_LOGIC;
-        RESETN   : in  STD_LOGIC;                       -- active-low (CPU_RESETN)
+        RESET    : in  STD_LOGIC;                       -- active-low (bundet til CPU_RESETN)
         SW       : in  STD_LOGIC_VECTOR(7 downto 0);
         BTNC     : in  STD_LOGIC;
         BTNU     : in  STD_LOGIC;
@@ -38,7 +38,7 @@ architecture TOP_Structural of TOP_MODUL_F is
 begin
 
     -- Inverter active-low boards-reset til active-high intern reset
-    RESET_int <= not RESETN;
+    RESET_int <= not RESET;
 
     -- ==========================================================
     -- Microprocessor core: hele CPU + RAM + PortReg + bus-mux
