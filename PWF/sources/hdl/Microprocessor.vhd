@@ -3,9 +3,20 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 -- Top-level Microprocessor: Datapath + Microprogram Controller + RAM + Port Register + MUX MR
 -- This is the core system (excluding the board-level TOP_MODUL wrapper)
+--
+-- To klok-domæner:
+--   CLK     -- fuld board-klok (100 MHz). Bruges af BRAM (Ram256x16) så
+--              BRAM-makroen beholder sin BUFG-drevne klok og fuld throughput.
+--   CLK_CPU -- divideret klok fra TOP_MODUL_F (typisk CLK/2 = 50 MHz). Bruges
+--              af Datapath, MicroprogramController og PortReg8x8 så CPU-logikken
+--              kan køres langsommere af hensyn til synlighed på boardet.
+-- CLK_CPU er synkront afledt af CLK (tæller-baseret divider) og BUFG-drevet
+-- i TOP_MODUL_F, så CDC mellem de to domæner er fasesynkron og kræver
+-- ikke synkroniserings-flipflops.
 entity Microprocessor is
     port (
         CLK      : in  STD_LOGIC;
+        CLK_CPU  : in  STD_LOGIC;
         RESET    : in  STD_LOGIC;
         -- Board peripherals (exposed through Port Register)
         SW       : in  STD_LOGIC_VECTOR(7 downto 0);
@@ -76,7 +87,7 @@ begin
     DP_inst : entity work.Datapath
         port map (
             RESET       => RESET,
-            CLK         => CLK,
+            CLK         => CLK_CPU,
             RW          => RW_sig,
             DA          => DX_sig,
             AA          => AX_sig,
@@ -104,7 +115,7 @@ begin
     MPC_inst : entity work.MicroprogramController
         port map (
             RESET          => RESET,
-            CLK            => CLK,
+            CLK            => CLK_CPU,
             Address_In     => Address_Out_DP,
             Address_Out    => Address_Out_PC,
             Instruction_In => Data_Bus_Out,
@@ -145,7 +156,7 @@ begin
     -- ==========================================================
     PR_inst : entity work.PortReg8x8
         port map (
-            clk        => CLK,
+            clk        => CLK_CPU,
             MW         => MW_sig,
             RESET      => RESET,
             Data_In    => Data_In_RAM,

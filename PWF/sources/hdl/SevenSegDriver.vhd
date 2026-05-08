@@ -75,25 +75,28 @@ begin
 
     -- ---------------------------------------------------------------
     -- Hex til 7-segment dekoder
-    -- segments(6 downto 0) = CA, CB, CC, CD, CE, CF, CG  (active-low)
+    -- segments(0..6) = CA, CB, CC, CD, CE, CF, CG  (active-low)
+    -- Pin-mapping kommer fra XDC: segments[0]->ca (top), segments[6]->cg
+    -- (middle). Encoding-strengen læses LSB-først, dvs. segments(0)=CA
+    -- er positionen længst til højre i strengen.
     -- ---------------------------------------------------------------
     with nibble select
-        segments <= "0000001" when "0000",   -- 0
-                    "1001111" when "0001",   -- 1
-                    "0010010" when "0010",   -- 2
-                    "0000110" when "0011",   -- 3
-                    "1001100" when "0100",   -- 4
-                    "0100100" when "0101",   -- 5
-                    "0100000" when "0110",   -- 6
-                    "0001111" when "0111",   -- 7
+        segments <= "1000000" when "0000",   -- 0
+                    "1111001" when "0001",   -- 1
+                    "0100100" when "0010",   -- 2
+                    "0110000" when "0011",   -- 3
+                    "0011001" when "0100",   -- 4
+                    "0010010" when "0101",   -- 5
+                    "0000010" when "0110",   -- 6
+                    "1111000" when "0111",   -- 7
                     "0000000" when "1000",   -- 8
-                    "0001100" when "1001",   -- 9
+                    "0011000" when "1001",   -- 9
                     "0001000" when "1010",   -- A
-                    "1100000" when "1011",   -- b
-                    "0110001" when "1100",   -- C
-                    "1000010" when "1101",   -- d
-                    "0110000" when "1110",   -- E
-                    "0111000" when "1111",   -- F
+                    "0000011" when "1011",   -- b
+                    "1000110" when "1100",   -- C
+                    "0100001" when "1101",   -- d
+                    "0000110" when "1110",   -- E
+                    "0001110" when "1111",   -- F
                     "1111111" when others;   -- blank
 
 end SSD_Behavorial;
