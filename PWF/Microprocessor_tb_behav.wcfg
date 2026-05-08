@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="Microprocessor_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="Microprocessor_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="20.000 us"></ZoomEndTime>
+      <Cursor1Time time="0.000 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="180"></NameColumnWidth>
+      <ValueColumnWidth column_width="80"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="24" />
+
+   <wvobject fp_name="group_inputs" type="group">
+      <obj_property name="label">--- Inputs ---</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/CLK" type="logic">
+      <obj_property name="ElementShortName">CLK</obj_property>
+      <obj_property name="ObjectShortName">CLK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/RESET" type="logic">
+      <obj_property name="ElementShortName">RESET</obj_property>
+      <obj_property name="ObjectShortName">RESET</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/SW" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">SW[7:0]</obj_property>
+      <obj_property name="ObjectShortName">SW[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/BTNR" type="logic">
+      <obj_property name="ElementShortName">BTNR</obj_property>
+      <obj_property name="ObjectShortName">BTNR</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/BTNL" type="logic">
+      <obj_property name="ElementShortName">BTNL</obj_property>
+      <obj_property name="ObjectShortName">BTNL</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="group_outputs" type="group">
+      <obj_property name="label">--- Outputs ---</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/LED" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">LED[7:0]</obj_property>
+      <obj_property name="ObjectShortName">LED[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/D_Word" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">D_Word[15:0]</obj_property>
+      <obj_property name="ObjectShortName">D_Word[15:0]</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="group_bus" type="group">
+      <obj_property name="label">--- Memory Bus ---</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/Mem_Address" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">Mem_Address[7:0]</obj_property>
+      <obj_property name="ObjectShortName">Mem_Address[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/Data_Bus_Out" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">Data_Bus_Out[15:0]</obj_property>
+      <obj_property name="ObjectShortName">Data_Bus_Out[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/Data_outM" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">Data_outM[15:0]</obj_property>
+      <obj_property name="ObjectShortName">Data_outM[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/Data_outR" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">Data_outR[15:0]</obj_property>
+      <obj_property name="ObjectShortName">Data_outR[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/MM_sig" type="logic">
+      <obj_property name="ElementShortName">MM</obj_property>
+      <obj_property name="ObjectShortName">MM</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/MW_sig" type="logic">
+      <obj_property name="ElementShortName">MW</obj_property>
+      <obj_property name="ObjectShortName">MW</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/MMR_sig" type="logic">
+      <obj_property name="ElementShortName">MMR</obj_property>
+      <obj_property name="ObjectShortName">MMR</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="group_dp" type="group">
+      <obj_property name="label">--- Datapath ---</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/Address_Out_DP" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">Address_Out_DP[7:0]</obj_property>
+      <obj_property name="ObjectShortName">Address_Out_DP[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/Data_Out_DP" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">Data_Out_DP[7:0]</obj_property>
+      <obj_property name="ObjectShortName">Data_Out_DP[7:0]</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="group_mpc" type="group">
+      <obj_property name="label">--- Microprogram Controller ---</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/Address_Out_PC" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">PC[7:0]</obj_property>
+      <obj_property name="ObjectShortName">Address_Out_PC[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/MPC_inst/IR_sig" type="array">
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="ElementShortName">IR[15:0]</obj_property>
+      <obj_property name="ObjectShortName">IR_sig[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/DX_sig" type="array">
+      <obj_property name="ElementShortName">DX[3:0]</obj_property>
+      <obj_property name="ObjectShortName">DX_sig[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/AX_sig" type="array">
+      <obj_property name="ElementShortName">AX[3:0]</obj_property>
+      <obj_property name="ObjectShortName">AX_sig[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/BX_sig" type="array">
+      <obj_property name="ElementShortName">BX[3:0]</obj_property>
+      <obj_property name="ObjectShortName">BX_sig[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Microprocessor_tb/UUT/FS_sig" type="array">
+      <obj_property name="ElementShortName">FS[3:0]</obj_property>
+      <obj_property name="ObjectShortName">FS_sig[3:0]</obj_property>
+   </wvobject>
+</wave_config>

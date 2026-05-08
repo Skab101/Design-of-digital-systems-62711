@@ -13,6 +13,12 @@ use UNIMACRO.vcomponents.all;
 -- Uses Artix-7 BRAM_SINGLE_MACRO primitive (18Kb, 16-bit width)
 -- The primitive has 10-bit address (1024 entries); we only use 256 of them
 -- by padding the 8-bit Address_in with two zeros.
+--
+-- BRAM'en clockes på NEGATIV flank så data er stabil i tide til at
+-- IR'en (i MPC) kan indlæse den på næste positive flank. PWB's IDC
+-- sætter MM=1 og IL=1 i samme INF-cyklus, hvilket forudsætter ~0-cycle
+-- memory read. BRAM er synkron, men ved at drive den en halv cyklus i
+-- modfase får læsningen tid til at sætte sig.
 entity Ram256x16 is
     port (
         clk        : in  STD_LOGIC;
@@ -30,11 +36,14 @@ architecture RAM_Structural of Ram256x16 is
     signal ADDR_full : STD_LOGIC_VECTOR(9 downto 0);
     -- Byte write enable: 2 bits for 16-bit width in 18Kb mode
     signal WE_sig    : STD_LOGIC_VECTOR(1 downto 0);
+    -- Inverteret klok til negativ-flank BRAM (se header)
+    signal clk_n     : STD_LOGIC;
 
 begin
 
     ADDR_full <= "00" & Address_in;
     WE_sig    <= (others => MW);
+    clk_n     <= not clk;
 
     BRAM_SINGLE_MACRO_inst : BRAM_SINGLE_MACRO
     generic map (
@@ -43,8 +52,8 @@ begin
         DO_REG      => 0,            -- No output register (synchronous read)
         INIT        => X"0000",      -- Initial value on output port
         -- PROGRAM_INIT_BEGIN (managed by dsdasm.py -- do not edit by hand)
-        INIT_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
-        INIT_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+        INIT_00 => X"40192068214098042100980320C0980221C09805000E00FF00F800FAE03899C6",
+        INIT_01 => X"00000000000000000000000000000000000000000000000000000000E0384021",
         INIT_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
         INIT_04 => X"0000000000000000000000000000000000000000000000000000000000000000",
@@ -69,7 +78,7 @@ begin
     port map (
         DO    => Data_out,     -- 16-bit output data
         ADDR  => ADDR_full,    -- 10-bit address
-        CLK   => clk,
+        CLK   => clk_n,        -- negativ-flank, se header
         DI    => Data_in,      -- 16-bit input data
         EN    => '1',          -- RAM always enabled
         REGCE => '1',          -- Output register clock enable (unused since DO_REG=0)
