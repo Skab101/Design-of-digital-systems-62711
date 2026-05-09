@@ -81,8 +81,9 @@ begin
 
     -- ==========================================================
     -- Datapath (PWA): register file + ALU + flags
-    -- Cin er ikke leveret af MPC; tied til '0'. Det betyder at
-    -- SUB/ADC-instruktioner ikke virker, men ADD/LD/ST/JMP gør.
+    -- Cin <= FS_sig(0): matcher FS-encoding for ADD/SUB/INC/DEC
+    -- og er don't-care for logiske ops (gated af ALU output mux
+    -- når FS3=1).
     -- ==========================================================
     DP_inst : entity work.Datapath
         port map (
@@ -98,7 +99,7 @@ begin
             FS2         => FS_sig(2),
             FS1         => FS_sig(1),
             FS0         => FS_sig(0),
-            Cin         => '0',
+            Cin         => FS_sig(0),
             DataIn      => Data_Bus_Out(7 downto 0),
             MD          => MD_sig,
             Address_Out => Address_Out_DP,
