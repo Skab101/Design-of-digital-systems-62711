@@ -8,15 +8,17 @@
 
 ## TL;DR for the next session
 
-1. **What works on the FPGA right now:** `sw_to_led.asm` (DEC-based variant, currently in BRAM). Set switches, press BTNR, LEDs mirror SW.
-2. **The big open mystery:** the Cin fix was committed in `Microprocessor.vhd` (`Cin => FS_sig(0)` instead of `'0'`), but the on-board behavior shows the bitstream still acts like `Cin = '0'`. We worked around it by writing the program with DEC (which is Cin-agnostic) instead of SUB. **Top-priority next task: figure out why the Cin fix isn't landing in the synthesized bitstream.** See "The Cin investigation" section below.
+1. **What works on the FPGA right now:** SUB-based programs (`sw_to_led_sub.asm` and `Jonas_test.asm`). Set switches, press BTNR, LEDs mirror SW. The DEC-based `sw_to_led.asm` also still works as a fallback.
+2. **Cin investigation is RESOLVED.** Root cause was a stale incremental synthesis checkpoint (`PWF.srcs/utils_1/imports/synth_1/TOP_MODUL_F.dcp`) that Vivado was reusing across "clean" rebuilds — pre-fix netlist regions persisted even with Reset Run. Fixed by removing the .dcp reference from `PWF.xpr` and setting `AutoIncrementalCheckpoint="false"`. Source code was correct all along. See "The Cin investigation" section below for the full story.
 3. **Sim works:** `Microprocessor_tb.vhd` runs in xsim and all assertions pass.
 
 ---
 
 ## Current state
 
-The program in BRAM (`Ram256x16.vhd` INIT_00) is the DEC-based `sw_to_led.asm`:
+The program in BRAM (`Ram256x16.vhd` INIT_00) is the SUB-based `Jonas_test.asm` (functionally equivalent to `sw_to_led_sub.asm`). To swap, run dsdasm pointing at any of the example asm files and rebuild — see "Workflow: changing the program".
+
+For reference, the original DEC-based `sw_to_led.asm`:
 
 ```
 NOT R2 R0         ; R2 = 0xFF
@@ -39,9 +41,31 @@ The "real" SUB-based version is preserved in commented-out form at the bottom of
 
 ---
 
-## The Cin investigation (priority debug task)
+## The Cin investigation (RESOLVED 2026-05-09)
 
-### Background
+### Resolution summary
+
+**Root cause:** Vivado was using an incremental synthesis checkpoint at `PWF/PWF.srcs/utils_1/imports/synth_1/TOP_MODUL_F.dcp` — built before the `Cin => FS_sig(0)` fix landed. Even with "Reset Run" + fresh "Generate Bitstream", Vivado's incremental flow stitched pre-fix netlist regions into the final bitstream. The `.dcp` was referenced from `PWF.xpr` with `AutoIncrementalCheckpoint="true"`.
+
+**Fix applied:**
+- Removed the `<File>` entry for `TOP_MODUL_F.dcp` from `PWF.xpr`'s `utils_1` fileset.
+- Set `AutoIncrementalCheckpoint="false"` and dropped `IncrementalCheckpoint=...`/`AutoIncrementalDir=...`/`AutoRQSDir=...` attributes on the `synth_1` Run.
+- Set `flatten_hierarchy=none` on `synth_1` (preserves module boundaries — both for spec compliance and to make future Cin-style debugging tractable).
+- Renamed the stale `.dcp` to `.dcp.bak` (out-of-tree, untracked).
+
+**Verified on board:** SUB-based programs now run correctly. `Jonas_test.asm` and `sw_to_led_sub.asm` both mirror SW to LED via SUB instructions.
+
+### Synthesis insight worth knowing for the report
+
+When `flatten_hierarchy=none` is enabled, the post-synth view shows `CPU_inst/DP_inst/Cin → <const0>` at every hierarchy level. This is **not** a bug — Vivado's cross-boundary optimization recognized that `ALU.Cin` and `JSel(0)` are both driven by `FS_sig(0)` at the top, and rewired the leaf `full_adder.Cin` directly to `JSel[0]`, leaving the formal `Cin` port chain dangling (and tied to `<const0>`). The actual carry-in to the synthesized adder is correct:
+
+```
+CPU_inst/DP_inst/FU/U_ALU/full_adder/Cin -> CPU_inst/DP_inst/FU/U_ALU/JSel[0]
+```
+
+The 8-bit ALU adder did **not** get inferred as a CARRY4 (it's built structurally from `full_adder_1_bit` instances with explicit XOR/AND gates, so Vivado mapped it to LUT3s). This is slow but functionally correct. The 14 CARRY4s in the design are all in DivClk + SevenSegDriver counters.
+
+### Original analysis (preserved for reference)
 
 Originally `Microprocessor.vhd` had `Cin => '0'` hardcoded in the Datapath port map, which broke `SUB`/`INC`/`ADC` (all need Cin=1 since their FS encoding has FS0=1). Commit `778e271` changed it to `Cin => FS_sig(0)` — this should make all arithmetic ops work because FS is set per-instruction by the IDC.
 
@@ -263,12 +287,10 @@ The PR for this branch: https://github.com/Skab101/Design-of-digital-systems-627
 
 ## Suggested next steps (priority order)
 
-1. **Resolve the Cin investigation** (top of this doc) — once SUB works on the board, life becomes much easier.
-2. **Switch sw_to_led.asm to the SUB-based version** (commented at the bottom of the file) — it's shorter and idiomatic.
-3. **Add 7-seg writes** so the value also shows on the rightmost two hex digits (write to MR0).
-4. **Write programs that use SUB/INC/ADD** — counter, accumulator, BTNR/BTNL operands summed, etc.
-5. **Open a PR** for `feature/divclk-cpu` once everything works.
-6. **Write report sections** (in `Report-PWF` submodule) about the dual-clock design, BRAM falling-edge trick, and the Cin fix.
+1. **Add 7-seg writes** so the value also shows on the rightmost two hex digits (write to MR0).
+2. **Write programs that use SUB/INC/ADD** — counter, accumulator, BTNR/BTNL operands summed, etc.
+3. **Open a PR** for `feature/divclk-cpu`.
+4. **Write report sections** (in `Report-PWF` submodule) about the dual-clock design, BRAM falling-edge trick, the Cin investigation (the .dcp story is a great example for the report), and the cross-boundary optimization quirk.
 
 ---
 
