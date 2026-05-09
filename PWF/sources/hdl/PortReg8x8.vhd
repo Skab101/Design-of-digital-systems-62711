@@ -68,7 +68,7 @@ begin
             -- opdaterer load signaler og write_data ud fra adresse-dekodning
             case Address_in(2 downto 0) is
                 when "000" => load(0) <= '1'; write_data <= Data_In(7 downto 0); -- MR0
-                when "001" => load(1) <= '1'; write_data <= Data_In(15 downto 8); -- MR1
+                when "001" => load(1) <= '1'; write_data <= Data_In(7 downto 0); -- MR1
                 when "010" => load(2) <= '1'; write_data <= Data_In(7 downto 0); -- MR2
                 when others => null; -- Ingen register skal loades
             end case;

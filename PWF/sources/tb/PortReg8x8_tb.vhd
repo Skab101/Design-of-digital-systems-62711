@@ -1,13 +1,20 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- Testbench for PortReg8x8 -- følger flowet fra timing-diagrammet:
---   1) Skriv F8 <- 0x1234   -> MR0 = 0x34   (lav byte)
---   2) Skriv F9 <- 0x1234   -> MR1 = 0x12   (høj byte)
---   3) Skriv FA <- 0xABCD   -> MR2 = 0xCD   (lav byte)
---   4) Læs FA               -> Data_outR = 0x00CD
+-- Testbench for PortReg8x8 -- følger flowet fra timing-diagrammet.
+-- Spec siger (PWF, p.1): "For the data, only the 8 lowest bits (low byte)
+-- are used". Datapath outputtet er 8-bit, og Zero_Filler_2 i toppen padder
+-- de oeverste 8 bit til 0. Saa ALLE MR-skrivninger laeser Data_In(7:0).
+-- Vi tester at high-byten i Data_In ignoreres ved at saette den til noget
+-- ikke-nul.
+--
+--   1) Skriv F8 <- 0xAB34   -> MR0 = 0x34   (low byte; 0xAB high ignoreres)
+--   2) Skriv F9 <- 0xCD12   -> MR1 = 0x12   (low byte; 0xCD high ignoreres)
+--                              D_word skal nu vaere 0x1234
+--   3) Skriv FA <- 0xABCD   -> MR2 = 0xCD   (low byte)
+--   4) Laes FA               -> Data_outR = 0x00CD
 --   5) BTNR pulse, SW=0x5A   -> MR3 = 0x5A
---   6) Læs FB               -> Data_outR = 0x005A
+--   6) Laes FB               -> Data_outR = 0x005A
 --   7) RESET                 -> alle registre = 0
 entity PortReg8x8_tb is
 end PortReg8x8_tb;
@@ -70,15 +77,16 @@ begin
         RESET <= '0';
 
         -- ============================================
-        -- Skrive-cyklus 1: MW pulse, F8 <- 0x1234  (MR0 <- 0x34)
+        -- Skrive-cyklus 1: MW pulse, F8 <- 0xAB34  (MR0 <- 0x34)
+        -- High byte 0xAB skal ignoreres (spec: kun low byte bruges).
         -- ============================================
         MW         <= '1';
         Address_in <= x"F8";
-        Data_In    <= x"1234";
+        Data_In    <= x"AB34";
         wait until rising_edge(clk);   -- latcher MR0
         wait for 1 ns;
         assert D_word(7 downto 0) = x"34"
-            report "MR0 fejlede: D_word(7:0) skulle være 34"
+            report "MR0 fejlede: D_word(7:0) skulle vaere 34"
             severity error;
 
         -- MW slip mellem skrivninger (data_write -> 00)
@@ -88,16 +96,18 @@ begin
         wait for 1 ns;
 
         -- ============================================
-        -- Skrive-cyklus 2: MW pulse, F9 <- 0x1234  (MR1 <- 0x12 - høj byte)
+        -- Skrive-cyklus 2: MW pulse, F9 <- 0xCD12  (MR1 <- 0x12)
+        -- Low byte (0x12) loades i MR1; high byte (0xCD) skal ignoreres.
+        -- D_word bliver MR1 || MR0 = 0x12 || 0x34 = 0x1234.
         -- ============================================
         wait until falling_edge(clk);
         MW         <= '1';
         Address_in <= x"F9";
-        Data_In    <= x"1234";
+        Data_In    <= x"CD12";
         wait until rising_edge(clk);   -- latcher MR1
         wait for 1 ns;
         assert D_word = x"1234"
-            report "MR1 fejlede: D_word skulle være 1234"
+            report "MR1 fejlede: D_word skulle vaere 1234 (MR1=12, MR0=34)"
             severity error;
 
         wait until falling_edge(clk);
