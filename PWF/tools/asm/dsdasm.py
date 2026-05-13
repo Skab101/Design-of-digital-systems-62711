@@ -56,8 +56,8 @@ ISA = {
     'BRN':  OpInfo(0b1100001, (('A','reg'), ('B','off'))),
     'JMP':  OpInfo(0b1110000, (('A','reg'),)),
     'LRI':  OpInfo(0b0010001, (('D','reg'), ('A','reg'))),
-    'SRM':  OpInfo(0b0001101, (('A','reg'),)),
-    'SLM':  OpInfo(0b0001110, (('A','reg'),)),
+    'SRM':  OpInfo(0b0001101, (('D','reg'), ('A','reg'), ('B','imm'))),
+    'SLM':  OpInfo(0b0001110, (('D','reg'), ('A','reg'), ('B','imm'))),
 }
 
 SLOT_SHIFT = {'D': 6, 'A': 3, 'B': 0}
@@ -475,13 +475,13 @@ class CPU:
             self.R[8] = self.read_mem(A) & 0xFF
             self.R[DR] = self.read_mem(self.R[8]) & 0xFF
         elif name == 'SRM':
-            shift = self.R[9] & 0b111
+            shift = SB & 0b111
             r = (A >> shift) & 0xFF
-            self.R[SA] = r; self._flags(r)
+            self.R[DR] = r; self._flags(r)
         elif name == 'SLM':
-            shift = self.R[9] & 0b111
+            shift = SB & 0b111
             r = (A << shift) & 0xFF
-            self.R[SA] = r; self._flags(r)
+            self.R[DR] = r; self._flags(r)
         else:
             raise RuntimeError(f"simulator missing case for {name}")
 
@@ -588,8 +588,8 @@ PWF_REFERENCE = [
     ("brn  R0, 0",      0xC200),
     ("jmp  R0",         0xE000),
     ("lri  R0 R0",      0x2200),
-    ("srm  R0",         0x1A00),
-    ("slm  R0",         0x1C00),
+    ("srm  R0 R0 0",    0x1A00),
+    ("slm  R0 R0 0",    0x1C00),
 ]
 
 def cmd_test(args):
