@@ -54,7 +54,13 @@ architecture TOP_Structural of TOP_MODUL_F is
     -- Sæt højere for langsommere CPU (god til at se enkelte instruktioner
     -- på 7-seg/LED). Frekvens = CLK / (2 * (TimeP/2 + 1)) for TimeP >= 2;
     -- TimeP = 1 er specialtilfældet hvor Clk1 = Clk/2.
-    constant CPU_DIV : integer := 1;
+    --
+    -- TimeP = 1_000_000 -> CPU-klok ~100 Hz. srm_led_pulse-programmet
+    -- bruger ~14 cykler per LED-skridt, dvs. ~140 ms per skridt; den fulde
+    -- fill+drain-cyklus er ~16 skridt og varer ca. 2-3 sekunder.
+    -- Saet til 1 for fuld fart (50 MHz CPU) under simulering eller naar
+    -- ydeevne testes; det er ren konstant og kraever ingen anden aendring.
+    constant CPU_DIV : integer := 1_000_000;
 
 begin
 
