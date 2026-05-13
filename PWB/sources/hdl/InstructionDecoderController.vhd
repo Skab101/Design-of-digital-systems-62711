@@ -34,10 +34,10 @@ begin
     end process;
 
     -- Process 2: Next-state logik + output logik (kombinatorisk)
-    control_logic: process(current_state, IR, V, C, N, Z)
+    control_logic: process(current_state, IR, N, Z)
     begin
         -- Standardværdier (undgår latches)
-        next_state <= INF;
+        next_state <= current_state;
         PS  <= "00";
         IL  <= '0';
         DX  <= '0' & IR(8 downto 6);
@@ -59,6 +59,15 @@ begin
                 next_state <= EX0;
                 IL  <= '1';
                 MM  <= '1';
+                PS  <= "00";
+                DX  <= '0' & IR(8 downto 6);
+                AX  <= '0' & IR(5 downto 3);
+                BX  <= '0' & IR(2 downto 0);
+                MB  <= '0';
+                FS  <= "0000";
+                MD  <= '0';
+                RW  <= '0';
+                MW  <= '0';
 
             ----------------------------------------------------------------
             -- EX0: Decode opcode, udfør instruktion
@@ -91,10 +100,10 @@ begin
                         if Z = '1' then
                             next_state <= INF;
                             PS <= "01";
-                        else
-                            next_state <= EX1;
+                        elsif Z = '0' then
+                            next_state <= EX1; 
                         end if;
-
+                        
                     -- SLM: Shift left multiple (flercyklus)
                     -- EX0: R8 <- R[SA], tjek Z
                     when "0001110" =>
@@ -149,7 +158,7 @@ begin
                         next_state <= INF;
                         if Z = '1' then
                             PS <= "10";
-                        else
+                        elsif z = '0' then
                             PS <= "01";
                         end if;
 
@@ -158,7 +167,7 @@ begin
                         next_state <= INF;
                         if N = '1' then
                             PS <= "10";
-                        else
+                        elsif N = '0' then
                             PS <= "01";
                         end if;
 
@@ -187,13 +196,34 @@ begin
                         MD  <= '1';
                         RW  <= '1';
 
-                    -- SRM/SLM: R9 <- zf OP
-                    when "0001101" | "0001110" =>
+                    -- SRM- zf OP
+                    when "0001101" =>
+                        DX  <= "1001";
+                        FS  <= "1100";
+                        MB  <= '1';
+                        RW  <= '1';
+                     if z = '0' then
+                        next_state <= EX2;
+                        
+                       elsif z= '1' then
+                        next_state <= INF;
+                     end if;
+                        
+                        
+                    -- SLM <- zf OP
+                    when "0001110"=>
                         next_state <= EX2;
                         DX  <= "1001";
                         FS  <= "1100";
                         MB  <= '1';
                         RW  <= '1';
+                     if z = '0' then
+                        next_state <= EX2;
+                        
+                       elsif z= '1' then
+                        next_state <= INF;
+                     end if;
+                     
 
                     when others =>
                         next_state <= INF;
@@ -206,7 +236,8 @@ begin
             when EX2 =>
                 next_state <= EX3;
                 DX  <= "1000";
-                AX  <= "1000";
+                AX  <= '0' & IR(5 downto 3);
+                BX <= "1000";
                 FS  <= IR(12 downto 9);  -- 1101=sr, 1110=sl
                 RW  <= '1';
 
@@ -216,6 +247,7 @@ begin
             when EX3 =>
                 DX  <= "1001";
                 AX  <= "1001";
+                BX <= '0' & IR(2 downto 0);
                 FS  <= "0110";
                 RW  <= '1';
                 if Z = '1' then
@@ -231,6 +263,7 @@ begin
                 next_state <= INF;
                 PS  <= "01";
                 AX  <= "1000";
+                BX <= '0' & IR(2 downto 0);
                 RW  <= '1';
 
         end case;
