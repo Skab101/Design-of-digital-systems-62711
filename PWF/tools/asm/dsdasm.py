@@ -68,7 +68,7 @@ OPCODE_TO_INSN = {info.opcode: (name, info) for name, info in ISA.items()}
 # Lexing / parsing helpers
 # =============================================================================
 
-REG_RE = re.compile(r'^[Rr](\d+)$')
+REG_RE = re.compile(r'^([RrDdAaBb])(\d+)$')
 LABEL_RE = re.compile(r'^[A-Za-z_]\w*$')
 
 class AsmError(Exception):
@@ -78,13 +78,25 @@ class AsmError(Exception):
         self.msg = msg
         super().__init__(f"line {line_num}: {msg}\n    | {self.line_text}")
 
-def parse_reg(tok):
+def parse_reg(tok, expected_slot=None):
+    """
+    Parse a register token. Accepts R<n> as slot-agnostic wildcard and
+    D<n>/A<n>/B<n> as slot-prefixed forms (case-insensitive, n in 0..7).
+
+    If expected_slot is given ('D', 'A' or 'B') and the token uses a slot
+    prefix that doesn't match, raise a clear AsmError-friendly message.
+    """
     m = REG_RE.match(tok)
     if not m:
-        raise ValueError(f"expected register (R0-R7), got '{tok}'")
-    n = int(m.group(1))
+        raise ValueError(f"expected register (R/D/A/B + digit), got '{tok}'")
+    prefix = m.group(1).upper()
+    n = int(m.group(2))
     if not 0 <= n <= 7:
-        raise ValueError(f"register out of range: R{n} (valid: R0-R7)")
+        raise ValueError(f"register out of range: {prefix}{n} (valid 0..7)")
+    if prefix != 'R' and expected_slot is not None and prefix != expected_slot:
+        raise ValueError(
+            f"expected {expected_slot}-register here, got '{tok}'"
+        )
     return n
 
 def parse_int(tok):
@@ -225,14 +237,28 @@ def assemble(source, filename="<input>"):
         for (slot, kind2), raw in zip(info.operands, raw_args):
             try:
                 if kind2 == 'reg':
-                    vals.append(parse_reg(raw))
+                    vals.append(parse_reg(raw, expected_slot=slot))
                 elif kind2 == 'imm':
-                    if raw in labels:
+                    # accept B<n> as zero-filled immediate, label, or raw int
+                    m = REG_RE.match(raw)
+                    if m and m.group(1).upper() == 'B':
+                        vals.append(int(m.group(2)))
+                    elif raw in labels:
                         vals.append(labels[raw])
                     else:
                         vals.append(parse_int(raw))
                 elif kind2 == 'off':
-                    if raw in labels:
+                    # accept B<n> (0..3 only — negatives via labels), label, or raw int
+                    m = REG_RE.match(raw)
+                    if m and m.group(1).upper() == 'B':
+                        v = int(m.group(2))
+                        if v > 3:
+                            raise ValueError(
+                                f"B-prefix offset out of range: {raw} "
+                                f"(use a label for backward branches)"
+                            )
+                        vals.append(v)
+                    elif raw in labels:
                         vals.append(labels[raw] - (addr + 1))
                     else:
                         vals.append(parse_int(raw))
