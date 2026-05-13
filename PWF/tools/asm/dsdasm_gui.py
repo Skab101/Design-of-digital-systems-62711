@@ -63,7 +63,7 @@ HEX_7SEG = {
 
 MNEMONICS    = set(dsdasm.ISA.keys())
 MNEMONIC_RE  = re.compile(r'\b(' + '|'.join(MNEMONICS) + r')\b', re.IGNORECASE)
-REG_RE       = re.compile(r'\b[Rr]\d+\b')
+REG_RE       = re.compile(r'\b[RrDdAaBb]\d+\b')
 IMM_RE       = re.compile(r'\b(0x[0-9A-Fa-f]+|0b[01]+|-?\d+)\b')
 LABEL_RE     = re.compile(r'^[ \t]*([A-Za-z_]\w*):', re.MULTILINE)
 DIRECTIVE_RE = re.compile(r'\.\w+', re.IGNORECASE)

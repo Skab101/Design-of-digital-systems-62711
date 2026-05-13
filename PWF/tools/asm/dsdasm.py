@@ -56,8 +56,8 @@ ISA = {
     'BRN':  OpInfo(0b1100001, (('A','reg'), ('B','off'))),
     'JMP':  OpInfo(0b1110000, (('A','reg'),)),
     'LRI':  OpInfo(0b0010001, (('D','reg'), ('A','reg'))),
-    'SRM':  OpInfo(0b0001101, (('A','reg'),)),
-    'SLM':  OpInfo(0b0001110, (('A','reg'),)),
+    'SRM':  OpInfo(0b0001101, (('D','reg'), ('A','reg'), ('B','imm'))),
+    'SLM':  OpInfo(0b0001110, (('D','reg'), ('A','reg'), ('B','imm'))),
 }
 
 SLOT_SHIFT = {'D': 6, 'A': 3, 'B': 0}
@@ -68,7 +68,7 @@ OPCODE_TO_INSN = {info.opcode: (name, info) for name, info in ISA.items()}
 # Lexing / parsing helpers
 # =============================================================================
 
-REG_RE = re.compile(r'^[Rr](\d+)$')
+REG_RE = re.compile(r'^([RrDdAaBb])(\d+)$')
 LABEL_RE = re.compile(r'^[A-Za-z_]\w*$')
 
 class AsmError(Exception):
@@ -78,13 +78,25 @@ class AsmError(Exception):
         self.msg = msg
         super().__init__(f"line {line_num}: {msg}\n    | {self.line_text}")
 
-def parse_reg(tok):
+def parse_reg(tok, expected_slot=None):
+    """
+    Parse a register token. Accepts R<n> as slot-agnostic wildcard and
+    D<n>/A<n>/B<n> as slot-prefixed forms (case-insensitive, n in 0..7).
+
+    If expected_slot is given ('D', 'A' or 'B') and the token uses a slot
+    prefix that doesn't match, raise a clear AsmError-friendly message.
+    """
     m = REG_RE.match(tok)
     if not m:
-        raise ValueError(f"expected register (R0-R7), got '{tok}'")
-    n = int(m.group(1))
+        raise ValueError(f"expected register (R/D/A/B + digit), got '{tok}'")
+    prefix = m.group(1).upper()
+    n = int(m.group(2))
     if not 0 <= n <= 7:
-        raise ValueError(f"register out of range: R{n} (valid: R0-R7)")
+        raise ValueError(f"register out of range: {prefix}{n} (valid 0..7)")
+    if prefix != 'R' and expected_slot is not None and prefix != expected_slot:
+        raise ValueError(
+            f"expected {expected_slot}-register here, got '{tok}'"
+        )
     return n
 
 def parse_int(tok):
@@ -225,14 +237,28 @@ def assemble(source, filename="<input>"):
         for (slot, kind2), raw in zip(info.operands, raw_args):
             try:
                 if kind2 == 'reg':
-                    vals.append(parse_reg(raw))
+                    vals.append(parse_reg(raw, expected_slot=slot))
                 elif kind2 == 'imm':
-                    if raw in labels:
+                    # accept B<n> as zero-filled immediate, label, or raw int
+                    m = REG_RE.match(raw)
+                    if m and m.group(1).upper() == 'B':
+                        vals.append(int(m.group(2)))
+                    elif raw in labels:
                         vals.append(labels[raw])
                     else:
                         vals.append(parse_int(raw))
                 elif kind2 == 'off':
-                    if raw in labels:
+                    # accept B<n> (0..3 only — negatives via labels), label, or raw int
+                    m = REG_RE.match(raw)
+                    if m and m.group(1).upper() == 'B':
+                        v = int(m.group(2))
+                        if v > 3:
+                            raise ValueError(
+                                f"B-prefix offset out of range: {raw} "
+                                f"(use a label for backward branches)"
+                            )
+                        vals.append(v)
+                    elif raw in labels:
                         vals.append(labels[raw] - (addr + 1))
                     else:
                         vals.append(parse_int(raw))
@@ -259,7 +285,7 @@ def decode_insn(word):
     for slot, kind in info.operands:
         val = (word >> SLOT_SHIFT[slot]) & 0b111
         if kind == 'reg':
-            parts.append(f"R{val}")
+            parts.append(f"{slot}{val}")
         elif kind == 'imm':
             parts.append(str(val))
         elif kind == 'off':
@@ -475,13 +501,13 @@ class CPU:
             self.R[8] = self.read_mem(A) & 0xFF
             self.R[DR] = self.read_mem(self.R[8]) & 0xFF
         elif name == 'SRM':
-            shift = self.R[9] & 0b111
+            shift = SB & 0b111
             r = (A >> shift) & 0xFF
-            self.R[SA] = r; self._flags(r)
+            self.R[DR] = r; self._flags(r)
         elif name == 'SLM':
-            shift = self.R[9] & 0b111
+            shift = SB & 0b111
             r = (A << shift) & 0xFF
-            self.R[SA] = r; self._flags(r)
+            self.R[DR] = r; self._flags(r)
         else:
             raise RuntimeError(f"simulator missing case for {name}")
 
@@ -570,26 +596,26 @@ def cmd_run(args):
 # hardware / our PWB InstructionDecoderController). Note that slide-9 in the
 # lecture-10 deck has AND and OR swapped vs this table.
 PWF_REFERENCE = [
-    ("mova R0 R1",      0x0008),
-    ("inc  R0 R1",      0x0208),
-    ("add  R0 R1 R2",   0x040A),
-    ("sub  R0 R1 R2",   0x0A0A),
-    ("dec  R0 R1",      0x0C08),
-    ("or   R0 R1 R2",   0x100A),   # opcode 0001000 per PWF spec
-    ("and  R0 R1 R2",   0x120A),   # opcode 0001001 per PWF spec
-    ("xor  R0 R1 R2",   0x140A),
-    ("not  R0 R1",      0x1608),
-    ("movb R0 R1",      0x1801),
-    ("ld   R0 R1",      0x2008),
-    ("st   R0 R1",      0x4001),
-    ("ldi  R0, 0",      0x9800),
-    ("adi  R0 R1, 0",   0x8408),
-    ("brz  R0, 0",      0xC000),
-    ("brn  R0, 0",      0xC200),
-    ("jmp  R0",         0xE000),
-    ("lri  R0 R0",      0x2200),
-    ("srm  R0",         0x1A00),
-    ("slm  R0",         0x1C00),
+    ("mova D0 A1",       0x0008),
+    ("inc  D0 A1",       0x0208),
+    ("add  D0 A1 B2",    0x040A),
+    ("sub  D0 A1 B2",    0x0A0A),
+    ("dec  D0 A1",       0x0C08),
+    ("or   D0 A1 B2",    0x100A),   # opcode 0001000 per PWF spec
+    ("and  D0 A1 B2",    0x120A),   # opcode 0001001 per PWF spec
+    ("xor  D0 A1 B2",    0x140A),
+    ("not  D0 A1",       0x1608),
+    ("movb D0 B1",       0x1801),
+    ("ld   D0 A1",       0x2008),
+    ("st   A0 B1",       0x4001),
+    ("ldi  D0, 0",       0x9800),
+    ("adi  D0 A1, 0",    0x8408),
+    ("brz  A0, 0",       0xC000),
+    ("brn  A0, 0",       0xC200),
+    ("jmp  A0",          0xE000),
+    ("lri  D0 A0",       0x2200),
+    ("srm  D0 A0 B0",    0x1A00),
+    ("slm  D0 A0 B0",    0x1C00),
 ]
 
 def cmd_test(args):
