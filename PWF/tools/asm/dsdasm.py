@@ -285,7 +285,7 @@ def decode_insn(word):
     for slot, kind in info.operands:
         val = (word >> SLOT_SHIFT[slot]) & 0b111
         if kind == 'reg':
-            parts.append(f"R{val}")
+            parts.append(f"{slot}{val}")
         elif kind == 'imm':
             parts.append(str(val))
         elif kind == 'off':
