@@ -1,6 +1,3 @@
-Denne note indeholder timing diagrams kode til WaveDrom	
-* Jeg skal huske at ændre dont care til nuller
-
 	{
   	"signal": [
       
@@ -19,7 +16,7 @@ Denne note indeholder timing diagrams kode til WaveDrom
 
           
      {name: "Data_outR", wave:"3..33333..3.3..",
-       data:["00",34,"00",12,"00","CD","5A","00"]},
+       data:["0000","0034","0000","0012","0000","00CD","005A","0000"]},
       
     { "name": "load(0)",    "wave": "0.10..........." },
     { "name": "load(1)",    "wave": "0...10........." },
@@ -42,7 +39,9 @@ Denne note indeholder timing diagrams kode til WaveDrom
 
     { "name": "BTNR",       "wave": "0........10...."},
       
-      {name: "RESET", wave: "0...........10."}
+      {name: "RESET", wave: "0...........10."},
+      
+      {name: "MMR", wave: "0..10101......."}
       
    	],
       "config" : {"hscale" :1}}
