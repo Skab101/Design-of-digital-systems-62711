@@ -1,302 +1,220 @@
-# PWF Microprocessor — Handoff
+# PWF Handoff — Microprocessor System (62711 Design of Digital Systems)
 
-**Branch:** `feature/divclk-cpu`
-**Last verified working on board:** 2026-05-09
-**Repo:** `C:\Users\Mads2\DTU\4. Semester\Digital Systems Design\team`
-
----
-
-## TL;DR for the next session
-
-1. **What works on the FPGA right now:** SUB-based programs (`sw_to_led_sub.asm` and `Jonas_test.asm`). Set switches, press BTNR, LEDs mirror SW. The DEC-based `sw_to_led.asm` also still works as a fallback.
-2. **Cin investigation is RESOLVED.** Root cause was a stale incremental synthesis checkpoint (`PWF.srcs/utils_1/imports/synth_1/TOP_MODUL_F.dcp`) that Vivado was reusing across "clean" rebuilds — pre-fix netlist regions persisted even with Reset Run. Fixed by removing the .dcp reference from `PWF.xpr` and setting `AutoIncrementalCheckpoint="false"`. Source code was correct all along. See "The Cin investigation" section below for the full story.
-3. **Sim works:** `Microprocessor_tb.vhd` runs in xsim and all assertions pass.
+Session handoff. Read this fully before touching anything. The "Gotchas"
+section is hard-won — re-discovering it costs hours.
 
 ---
 
-## Current state
+## 1. TL;DR — current status
 
-The program in BRAM (`Ram256x16.vhd` INIT_00) is the SUB-based `Jonas_test.asm` (functionally equivalent to `sw_to_led_sub.asm`). To swap, run dsdasm pointing at any of the example asm files and rebuild — see "Workflow: changing the program".
-
-For reference, the original DEC-based `sw_to_led.asm`:
-
-```
-NOT R2 R0         ; R2 = 0xFF
-DEC R3 R2         ; R3 = 0xFE         <-- loop entry (PC=1)
-DEC R3 R3         ; R3 = 0xFD
-DEC R3 R3         ; R3 = 0xFC
-DEC R3 R3         ; R3 = 0xFB (MR3 = BTNR latch)
-LD  R6 R3         ; R6 = MR3
-DEC R3 R3         ; R3 = 0xFA (MR2 = LED)
-ST  R3 R6         ; LED <- R6
-LDI R7 1
-JMP R7            ; loop back to PC=1
-```
-
-This works because every operation that touches the adder either:
-- Doesn't depend on Cin (DEC: FS0=0 so Cin=0 in both source variants, A + 0xFF + 0 = A - 1)
-- Bypasses the adder entirely (NOT, LDI: FS3=1 routes through logic mux instead)
-
-The "real" SUB-based version is preserved in commented-out form at the bottom of `sw_to_led.asm`. It will work *as soon as the bitstream actually contains the Cin fix* — no asm changes needed, just patch BRAM with that version and rebuild.
+- **The calculator works.** `addsub_calc.asm` (plus/minus calculator) is
+  verified correct in GHDL (7/7 asserts) **and** in Vivado xsim with the
+  real Xilinx BRAM. It runs on the board after a fresh bitstream.
+- `Ram256x16.vhd` currently has **addsub_calc** injected in `INIT_00`.
+- Main repo (`team/`) is at `9021fcc` (PR #34 merged: IDC SRM/SLM fix +
+  pulse demo + branch-offset fixes). Nothing important uncommitted in the
+  main repo except generated dirs.
+- **Report-PWF submodule has STAGED, UNCOMMITTED changes** (6 images +
+  `sections/microcode-program.tex`). NOT pushed. See §7.
 
 ---
 
-## The Cin investigation (RESOLVED 2026-05-09)
+## 2. Repo layout
 
-### Resolution summary
+Root: `C:\Users\Mads2\DTU\4. Semester\Digital Systems Design\team`
+(path has spaces — quote it; git-bash:
+`/c/Users/Mads2/DTU/4. Semester/Digital Systems Design/team`).
 
-**Root cause:** Vivado was using an incremental synthesis checkpoint at `PWF/PWF.srcs/utils_1/imports/synth_1/TOP_MODUL_F.dcp` — built before the `Cin => FS_sig(0)` fix landed. Even with "Reset Run" + fresh "Generate Bitstream", Vivado's incremental flow stitched pre-fix netlist regions into the final bitstream. The `.dcp` was referenced from `PWF.xpr` with `AutoIncrementalCheckpoint="true"`.
+Submodules:
+- `PWA/` — Datapath (RegisterFile, FunctionUnit, Shifter, ALU…)
+- `PWB/` — Microprogram Controller (IDC, ProgramCounter, IR, SignExtender…)
+- `PWF/` — top integration: `Microprocessor.vhd`, `Ram256x16.vhd`,
+  `PortReg8x8.vhd`, `MUX_MR.vhd`, `Zero_Filler_2.vhd`, `TOP_MODUL_F.vhd`,
+  assembler `tools/asm/dsdasm.py`, testbenches `sources/tb/`.
+- `Report/`, `Report-PWB/`, `Report-PWF/` — LaTeX (git submodules,
+  **Overleaf two-way synced**). PWF report = combined PWA+PWB+PWF doc.
 
-**Fix applied:**
-- Removed the `<File>` entry for `TOP_MODUL_F.dcp` from `PWF.xpr`'s `utils_1` fileset.
-- Set `AutoIncrementalCheckpoint="false"` and dropped `IncrementalCheckpoint=...`/`AutoIncrementalDir=...`/`AutoRQSDir=...` attributes on the `synth_1` Run.
-- Set `flatten_hierarchy=none` on `synth_1` (preserves module boundaries — both for spec compliance and to make future Cin-style debugging tractable).
-- Renamed the stale `.dcp` to `.dcp.bak` (out-of-tree, untracked).
+Submodules default to detached HEAD; `git checkout main` before pull.
+Global rules: **no AI attribution in commits**, Danish commit messages,
+Danish report text with real æøå.
 
-**Verified on board:** SUB-based programs now run correctly. `Jonas_test.asm` and `sw_to_led_sub.asm` both mirror SW to LED via SUB instructions.
+---
 
-### Synthesis insight worth knowing for the report
+## 3. GOTCHAS (critical hardware/ISA truths, reverse-engineered this session)
 
-When `flatten_hierarchy=none` is enabled, the post-synth view shows `CPU_inst/DP_inst/Cin → <const0>` at every hierarchy level. This is **not** a bug — Vivado's cross-boundary optimization recognized that `ALU.Cin` and `JSel(0)` are both driven by `FS_sig(0)` at the top, and rewired the leaf `full_adder.Cin` directly to `JSel[0]`, leaving the formal `Cin` port chain dangling (and tied to `<const0>`). The actual carry-in to the synthesized adder is correct:
+1. **Branches test a register, not a stored flag.** Flags V/C/N/Z are
+   *combinational* — there is **no flag register** (PWA `Datapath.vhd`
+   wires FunctionUnit flags straight out). During a `BRZ`/`BRN`'s own
+   EX0, the FU runs with default `FS=0000` (pass A) and `AX=IR(5:3)`. So:
+   - `BRZ A<reg>` branches iff `R[reg] == 0`
+   - `BRN A<reg>` branches iff `R[reg]` bit7 == 1
+   You **cannot** "compute then branch on result"; the branch's A-slot
+   chooses the register it tests, live.
 
+2. **Branch offset is relative to the BRANCH's own address** (PC doesn't
+   increment during `INF`, `PS=00`). HW: `PC <= PC_branch + offset`. To
+   skip the next instruction (`target=addr+2`) use **offset=2**, not 1.
+
+3. **Offset = 6-bit signed split D-slot + B-slot** per
+   `PWB/sources/hdl/SignExtender.vhd`:
+   `Extended_8 = (IR(8)x3) & IR(7..6) & IR(2..0)` → D=sign+bits4..3,
+   B=bits2..0, range −32..+31. **`BRZ`/`BRN` take 3 operands:**
+   `BRZ D<offhi> A<testreg> B<offlo>`. e.g. `BRZ D0 A4 B2` =
+   "if R4==0 → addr+2".
+
+4. **`dsdasm.py` was fixed this session to match 1–3** (encoder, decoder,
+   and simulator). Trust it again as source of truth.
+
+5. **PortReg MR1 is effectively unwritable** → upper two 7-seg digits
+   stuck at 00. `Zero_Filler_2.vhd` drives only `Data_In(7:0)` (high byte
+   always 0) but `PortReg8x8.vhd` decodes MR1 write as `Data_In(15:8)`.
+   Use **MR0 (lower 2 digits)** only. (1-line PortReg fix exists; user
+   declined — design around it.)
+
+6. **SRM/SLM**: Shifter is 1-bit; IDC loops EX2/EX3 `count` times
+   (count = B immediate 0..7). The EX1 Z-check and `EX2 BX<="1000"` fixes
+   are **already merged** (PR #34) and required.
+
+7. **Stale-RAM trap.** Editing `.asm` does nothing until re-injected:
+   `python PWF/tools/asm/dsdasm.py asm <f>.asm --vhdl PWF/sources/hdl/Ram256x16.vhd`
+   Then Vivado needs **`relaunch_sim`** (recompile), not just `restart`;
+   board needs full non-incremental re-synth + bitstream.
+
+8. **Testbenches must self-terminate** or `run all` hangs forever.
+   Pattern: `signal sim_done : boolean`; clock `while not sim_done loop`;
+   stim sets `sim_done<=true` at end. Applied to `Microprocessor_tb`,
+   `Ram256x16_tb`.
+
+9. **Wave logging**: deep signals (e.g. `.../RF/sR1`) only record if
+   added before the run → after `source wave_*.tcl` you must `restart`
+   then `run all`, else those rows are blank. Top-level/DUT ports
+   (`D_Word`) log by default.
+
+10. **Orphaned `xsimk` locks `simulate.log`** → relaunch fails
+    (boost::filesystem::remove). Kill stray `xsimk` PID, then
+    `close_sim -force; launch_simulation`. Avoid by letting `run all`
+    finish instead of Ctrl-C.
+
+11. **LaTeX path rule**: filenames with spaces break `\includegraphics`
+    here. Report images → `images/<topic>/` with ASCII, no-space names.
+
+---
+
+## 4. Toolchain
+
+### dsdasm.py (`PWF/tools/asm/dsdasm.py`)
+- `python dsdasm.py asm prog.asm --vhdl PWF/sources/hdl/Ram256x16.vhd`
+- `python dsdasm.py asm prog.asm --bram out.bram` ; `dsdasm.py dasm out.bram`
+- `python dsdasm.py run prog.asm [--trace] [--switches 0xNN] [--press BTNR]`
+  (CLI shares one `--switches` across all `--press`; for distinct
+  A/B/mode use the API): `import dsdasm; w,_=dsdasm.assemble(open(f).read());
+  cpu=dsdasm.CPU(w); cpu.set_switches(a); cpu.press_button('BTNR'); …;
+  cpu.step()`. Read results at `cpu.MR[0]`=MR0(0xF8, D_word low),
+  `cpu.MR[1]`=MR1, `cpu.MR[2]`=LED; RAM at `cpu.mem`.
+
+### GHDL flow (fast verify; no Xilinx BRAM)
+GHDL: `/c/Users/Mads2/AppData/Local/Programs/GHDL/bin/ghdl`. Uses
+behavioral `PWF/sources/tb/Ram256x16_sim.vhd` (its hand-coded `mem` init
+must mirror the injected program — currently addsub_calc). Compile ONE
+copy of duplicate entities: `flip_flop`,`MUX2x1`,`8bit_Register`,
+`full_adder` (identical) and **PWA's** `full_adder_8_bit` (superset).
+Exclude `16bitDFlipFlop.vhd`(dead/illegal name), `TOP_MODUL*`,
+`SevenSegDriver`, `DivClk`, real `Ram256x16.vhd`. Analyze leaf→top
+(ProgramCounter needs full_adder_8_bit first), then
+`ghdl -a/-e/-r --std=08 -fsynopsys --workdir=/tmp/ghdlwork`. TB self-
+terminates → expect `7 PASS, 0 FAIL`.
+
+### Vivado xsim (board-accurate; real BRAM)
+Tcl (paths in `{ }`):
 ```
-CPU_inst/DP_inst/FU/U_ALU/full_adder/Cin -> CPU_inst/DP_inst/FU/U_ALU/JSel[0]
+relaunch_sim
+source {.../PWF/sources/tb/wave_addsub.tcl}
+restart
+run all
 ```
+RAM TB: `set_property top Ram256x16_tb [get_filesets sim_1]` →
+`relaunch_sim` → `source {.../wave_ram.tcl}` → `restart` → `run all`.
+Back: `set_property top Microprocessor_tb …`. Desktop (Danish):
+`C:\Users\Mads2\OneDrive\Skrivebord`.
 
-The 8-bit ALU adder did **not** get inferred as a CARRY4 (it's built structurally from `full_adder_1_bit` instances with explicit XOR/AND gates, so Vivado mapped it to LUT3s). This is slow but functionally correct. The 14 CARRY4s in the design are all in DivClk + SevenSegDriver counters.
+---
 
-### Original analysis (preserved for reference)
+## 5. Testbenches & wave scripts (`PWF/sources/tb/`)
 
-Originally `Microprocessor.vhd` had `Cin => '0'` hardcoded in the Datapath port map, which broke `SUB`/`INC`/`ADC` (all need Cin=1 since their FS encoding has FS0=1). Commit `778e271` changed it to `Cin => FS_sig(0)` — this should make all arithmetic ops work because FS is set per-instruction by the IDC.
+- `Microprocessor_tb.vhd` — addsub_calc, 7 asserts, colored, self-term.
+- `Ram256x16_tb.vhd` — read+write+readback, 4 asserts, self-term.
+- `Ram256x16_sim.vhd` — GHDL-only behavioral RAM (keep OUT of synth set).
+- `PortReg8x8_tb.vhd` — existing.
+- `wave_addsub.tcl` — trimmed/colored/hex layout (Input/Registre/Resultat).
+- `wave_ram.tcl` — colored RAM timing-diagram layout.
 
-We verified by inspection that the Cin path is intact end-to-end:
+---
 
-| File | Line | Connection |
+## 6. Programs (`PWF/tools/asm/examples/`)
+
+| File | What | State |
 |---|---|---|
-| `PWF/sources/hdl/Microprocessor.vhd` | 102 | `Cin => FS_sig(0)` ✓ |
-| `PWA/PWA.srcs/sources_1/new/Datapath.vhd` | 98 | `Cin => Cin` (port-through) ✓ |
-| `PWA/PWA.srcs/sources_1/new/FunctionUnit.vhd` | 33 | `Cin => Cin` (port-through to ALU) ✓ |
-| `PWA/PWA.srcs/sources_1/new/ALU.vhd` | 24 | `Cin => Cin` (port-through to adder) ✓ |
-| `PWA/PWA.srcs/sources_1/new/full_adder_8_bit.vhd` | 30 | `carry(0) <= Cin` (final use) ✓ |
+| `addsub_calc.asm` | calc: BTNR=A, BTNL=B, BTND=mode(0=−/1=+) | ✅ verified, injected |
+| `sw_to_7seg.asm` | SW→7-seg hex via BTNR | ✅ board |
+| `sw_to_led_sub.asm` | SW→LED (SUB) | ✅ board |
+| `addsub_both.asm` | A+B & A−B at once | sim-only (blocked by gotcha 5) |
+| `knight_rider.asm` | LED bounce SLM/SRM | sim-verified, offsets fixed |
+| `srm_led_pulse.asm` | LED fill+drain | sim-verified, offsets fixed |
+| `srm_led_fill.asm`,`calculator.asm` | older demos | offsets fixed |
 
-The IDC sets `FS = "0101"` for SUB (FS0=1) and `FS = "0001"` for INC (FS0=1), so with the fix `Cin = 1` for both.
-
-dsdasm (which models the spec correctly) confirms the SUB-based program works there.
-
-### What we observed
-
-When we put the SUB-based `sw_to_led.asm` into BRAM and tried to run it on the board:
-- LED stays dark on BTNR press
-- Behavior matches what would happen with `Cin = '0'` (SUB computes A-B-1, address calculations go to the wrong I/O register)
-
-We tried everything to force a clean rebuild — Reset Run on synth_1 + impl_1, Generate Bitstream from scratch, even checked the synth log which says it does a "full resynthesis" of `Microprocessor.vhd`. The `.bit` file has a fresh timestamp. But the on-board behavior persists as if Cin is still 0.
-
-### What to investigate next
-
-1. **Open the synthesized design and inspect Cin**:
-   - In Vivado: after Generate Bitstream completes, click **Open Synthesized Design**
-   - Schematic view: navigate `TOP_MODUL_F → CPU_inst → DP_inst → FU → U_ALU → full_adder`
-   - Find the `Cin` input on the adder. Trace where it comes from.
-   - If it's tied to GND (logic 0), the fix isn't in the bitstream.
-   - If it traces back to `FS_sig[0]` from the MPC, the fix IS in the bitstream and the on-board failure must be something else (timing? programming issue?).
-
-2. **Try a totally clean rebuild from scratch**:
-   - Close Vivado entirely
-   - Delete `PWF/PWF.runs/`, `PWF/PWF.cache/`, `PWF/PWF.hw/` if present
-   - Reopen `.xpr`, Generate Bitstream
-   - Sometimes Vivado caches IP/netlist data even when Reset Run looks like it's doing a clean rebuild
-
-3. **Verify `.bit` file is fresh and being uploaded correctly**:
-   - In File Explorer, check `PWF/PWF.runs/impl_1/TOP_MODUL_F.bit` modified time matches your last build
-   - In Hardware Manager → Program Device dialog, verify the Bitstream file path points to the freshly built `.bit`
-
-4. **Write a tiny INC-test program**:
-   - `LDI R0 5; INC R1 R0; ST <LED>, R1` — should make LED show 0x06.
-   - With Cin=1: works → fix is in bitstream
-   - With Cin=0: INC is no-op, R1 stays 0, LED shows 0
-   - This isolates the Cin path from any other complexity.
-
-5. **Check for stale `.dcp` / netlist files** in `PWF/PWF.srcs/utils_1/imports/`. These are reference checkpoints used for incremental synthesis and can carry old netlist data.
-
-### Once you confirm Cin is correct in bitstream
-
-Replace the BRAM patch with the SUB-based variant (commented at the bottom of `sw_to_led.asm`):
-
-```bash
-# extract the SUB-based version from the comments, save it to a file, then:
-python PWF/tools/asm/dsdasm.py asm <sub-version>.asm --vhdl PWF/sources/hdl/Ram256x16.vhd
-```
-
-The SUB version is shorter (9 instructions vs 10) and is the "intended" idiom.
+All BRZ use the 3-operand `D A B` form (gotcha 3).
 
 ---
 
-## Architecture summary
+## 7. Report-PWF (UNCOMMITTED — decision pending)
 
-```
-TOP_MODUL_F.vhd              -- board-level wrapper
-├── DivClk.vhd                -- CLK -> CLK_CPU = CLK/2 (50 MHz CPU clock)
-├── BUFG_CPU                  -- routes CLK_CPU on global clock network
-├── Microprocessor.vhd        -- CPU core
-│   ├── Datapath  (PWA)       -- on CLK_CPU
-│   ├── MicroprogramCtrl (PWB) -- on CLK_CPU
-│   ├── PortReg8x8            -- on CLK_CPU (memory-mapped I/O at 0xF8..0xFF)
-│   ├── Ram256x16             -- on CLK (full speed), FALLING edge
-│   └── MUX_MR + MUX_M        -- combinational
-└── SevenSegDriver            -- on CLK (full speed)
-```
+Pulled to `8f55903`. **Staged, not committed/pushed:**
+- `images/system/`: `asm_tb_part1/2/3.png` (test-prog sim 3 parts),
+  `addsub_calc_sim.png` (calc sim), `board_addsub_5.jpg`,
+  `board_addsub_6.jpg` (calc on HW, 7-seg 0005/0006).
+- 5 messy space-named root PNGs removed (Overleaf clutter).
+- `sections/microcode-program.tex`: §Simulering = test-prog 3 figs +
+  "Regneprogram" para + calc sim fig; §Hardware-afvikling = 2 board
+  photos. Labels `fig:asm-tb-1/2/3`,`fig:addsub-sim`,
+  `fig:board-addsub-5/6`. **Builds clean: 58 pages, no errors.**
 
-Two clock domains:
-- **CLK** (100 MHz, board pin E3) → BRAM, SevenSegDriver
-- **CLK_CPU** (50 MHz, derived from CLK via DivClk + BUFG) → Datapath, MPC, PortReg
+⚠️ Overleaf two-way synced. **Ask user before pushing** (push → Overleaf
+pulls; or leave staged for user to sync from Overleaf). User has NOT
+chosen yet.
 
-The BRAM is clocked on the **falling edge** of CLK so its synchronous read latency lines up with the IR latch on the next CLK_CPU rising edge (the IDC asserts MM=1 and IL=1 in the same INF cycle, assuming ~0-cycle memory read).
-
----
-
-## File map
-
-```
-PWF/
-├── HANDOFF.md                              <- this file
-├── Nexys_4_DDR_Master.xdc                  <- DO NOT MODIFY (pin constraints)
-├── PWF.xpr                                 <- Vivado project
-├── Microprocessor_tb_behav.wcfg            <- xsim wave config
-├── PortReg8x8_tb_behav.wcfg
-├── sources/
-│   ├── hdl/
-│   │   ├── DivClk.vhd                      <- CLK divider (TimeP=1 -> CLK/2)
-│   │   ├── TOP_MODUL_F.vhd                 <- board wrapper, instantiates DivClk + BUFG
-│   │   ├── Microprocessor.vhd              <- CPU core (Cin = FS_sig(0))
-│   │   ├── Ram256x16.vhd                   <- BRAM, falling-edge, INIT holds program
-│   │   ├── PortReg8x8.vhd                  <- memory-mapped I/O
-│   │   ├── SevenSegDriver.vhd              <- 4-digit hex display driver
-│   │   ├── MUX_MR.vhd, MUX2x1.vhd, ...     <- combinational helpers
-│   │   └── flip_flop.vhd, 8bit_Register.vhd <- generic flops
-│   └── tb/
-│       └── Microprocessor_tb.vhd            <- top-level testbench, 5 tests
-└── tools/
-    └── asm/
-        ├── dsdasm.py                        <- assembler/disassembler/simulator
-        ├── dsdasm_gui.py
-        └── examples/
-            └── sw_to_led.asm                <- ONLY example program (DEC-based,
-                                                SUB-version in comments)
-
-../PWA/PWA.srcs/sources_1/new/                <- Datapath subcomponents
-../PWB/sources/hdl/                           <- MPC subcomponents
-```
-
-The Datapath (PWA) and MicroprogramController (PWB) live in sibling project folders. The PWF Vivado project references them via relative paths in `PWF.xpr`.
+### Remaining report gaps (agreed plan)
+- `syntese.tex`: 4 empty subsections (RAM/PortReg/Microprocessor sim,
+  Syntese Resultater).
+- `ram.tex`: broken `\includegraphics{RAM instruktioner.png}` → needs
+  RAM timing fig (from `wave_ram.tcl`).
+- Still-needed images: RAM read/write waveform, Vivado
+  utilization+timing screenshots, optional test-program board photo.
+- `tab:pwf-modulansvar` / `tab:pwf-tidsforbrug` in `main.tex` = TBD/0.
 
 ---
 
-## ISA cheat-sheet
+## 8. Next steps
 
-8 registers `R0..R7`. 16-bit instructions. 256x16 BRAM, addresses `0xF8..0xFF` mapped to MR registers.
-
-| MR | Addr | What |
-|----|------|------|
-| MR0 | 0xF8 | 7-seg low byte (writable) |
-| MR1 | 0xF9 | 7-seg high byte (writable) |
-| MR2 | 0xFA | LEDs (writable) |
-| MR3 | 0xFB | BTNR-latched SW |
-| MR4 | 0xFC | BTNL-latched SW |
-| MR5 | 0xFD | BTND-latched SW |
-| MR6 | 0xFE | BTNU-latched SW |
-| MR7 | 0xFF | BTNC-latched SW |
-
-Common instructions:
-
-| Instr | Opcode | Cin-sensitive? | Notes |
-|---|---|---|---|
-| `MOVA Rd Ra` | 0x00 | no | Rd = Ra |
-| `INC Rd Ra` | 0x02 | **yes** (FS0=1) | needs Cin fix |
-| `ADD Rd Ra Rb` | 0x04 | no (FS0=0) | Rd = Ra + Rb |
-| `SUB Rd Ra Rb` | 0x0A | **yes** (FS0=1) | needs Cin fix |
-| `DEC Rd Ra` | 0x0C | no (FS0=0) | Rd = Ra - 1 |
-| `OR/AND/XOR Rd Ra Rb` | 0x10..0x14 | no (FS3=1) | logic, adder bypassed |
-| `NOT Rd Ra` | 0x16 | no (FS3=1) | Rd = ~Ra |
-| `LD Rd Ra` | 0x20 | no | Rd = M[Ra] |
-| `ST Ra Rb` | 0x40 | no | M[Ra] = Rb |
-| `LDI Rd imm3` | 0x98 | no | Rd = imm (0..7) |
-| `JMP Ra` | 0xE0 | no | PC = Ra |
-
-**LDI immediate is 3-bit (0..7).** I/O addresses (`0xF8..0xFF`) are out of range — manufacture them by loading `0xFF` (e.g. `NOT R2 R0`) then DEC'ing or SUB'ing down.
+1. Ask user: commit+push Report-PWF now vs leave for Overleaf sync.
+2. On new images: copy → `images/{ram,syntese,system}/` (ASCII), fix
+   `ram.tex` path, fill `syntese.tex` subsections (fig + 2–4 lines DA),
+   `pdflatex` x2.
+3. Fill modulansvar/tidsforbrug tables when user provides data.
+4. Board: non-incremental re-synth → impl → bitstream → program; verify
+   addsub_calc.
 
 ---
 
-## Workflow: changing the program
+## 9. Quick reference
 
-```
-1. Edit  PWF/tools/asm/examples/sw_to_led.asm   (or write a new .asm)
-2. Run   python PWF/tools/asm/dsdasm.py asm <file>.asm --vhdl PWF/sources/hdl/Ram256x16.vhd
-3. Verify in dsdasm:
-        python PWF/tools/asm/dsdasm.py run <file>.asm --switches 0xA5 --press BTNR
-4. In Vivado:
-   - Save all (Ctrl+S)
-   - Right-click synth_1 -> Reset Run
-   - Right-click impl_1  -> Reset Run
-   - Generate Bitstream  (~3-5 minutes)
-5. Hardware Manager -> Program Device -> pick PWF.runs/impl_1/TOP_MODUL_F.bit
-6. Press CPU_RESETN on the board
-```
+Inject: `python PWF/tools/asm/dsdasm.py asm PWF/tools/asm/examples/addsub_calc.asm --vhdl PWF/sources/hdl/Ram256x16.vhd`
 
-**Critical:** if you skip the `Reset Run` steps, Vivado may reuse cached synthesis output that doesn't include your BRAM INIT changes. The bitstream timestamp will look fresh but the FPGA gets the old program. We hit this multiple times during the session.
+GHDL: `ghdl -r --std=08 -fsynopsys --workdir=/tmp/ghdlwork Microprocessor_tb` → `7 PASS, 0 FAIL`
 
-If a build looks like it didn't pick up changes, **nuke `PWF/PWF.runs/synth_1/` and `PWF/PWF.runs/impl_1/` and `PWF/PWF.cache/`** (close Vivado first), reopen, Generate Bitstream from scratch.
+Report build: `cd Report-PWF && pdflatex -interaction=nonstopmode -halt-on-error -file-line-error main.tex` (twice)
 
----
+Kill stray sim: PowerShell `Get-Process xsimk | Stop-Process -Force`
 
-## Workflow: simulation only (no board)
-
-```
-In Vivado: Flow -> Run Simulation -> Run Behavioral Simulation
-```
-
-The TB (`Microprocessor_tb.vhd`) runs 5 tests:
-1. Reset → LED = 0
-2. BTNR + SW=0x42 → LED = 0x42
-3. BTNR + SW=0xA5 → LED = 0xA5 (tests JMP loop)
-4. BTNL + SW=0x99 → LED unchanged (program reads MR3, not MR4)
-5. BTNR + SW=0xFF → LED = 0xFF
-6. BTNR + SW=0x00 → LED = 0x00
-
-Both `CLK` and `CLK_CPU` are driven from the same TB clock. Functional correctness doesn't depend on the divided-clock setup.
-
-To re-load the wave config: `Window → Wave → Open` → pick `PWF/Microprocessor_tb_behav.wcfg`.
-
----
-
-## Recent commit history (this branch)
-
-```
-abbcdab feat(PWF): working sw_to_led demo + HANDOFF document   <-- current HEAD
-1aec43b feat(PWF): assembly eksempler + demo testbenches
-778e271 fix(PWF): Cin = FS_sig(0) saa SUB/INC/DEC virker korrekt
-f379eba feat(PWF): DivClk-baseret CPU-klok + switch_echo demo
-4143909 fix(PWF): TOP_MODUL_F port hedder RESET (matcher XDC)
-bfb51fa feat(PWF): RESETN active-low i top + danske tegn i kommentarer
-e2e1a8e feat(PWF): tilfoej TOP_MODUL_F wiring og brug BRAM-baseret RAM
-ff31b45 feat(PWF): koer hele microprocessoren - implementer SevenSeg, RAM, top-wiring og TB
-```
-
-The PR for this branch: https://github.com/Skab101/Design-of-digital-systems-62711/pull/new/feature/divclk-cpu
-
----
-
-## Suggested next steps (priority order)
-
-1. **Add 7-seg writes** so the value also shows on the rightmost two hex digits (write to MR0).
-2. **Write programs that use SUB/INC/ADD** — counter, accumulator, BTNR/BTNL operands summed, etc.
-3. **Open a PR** for `feature/divclk-cpu`.
-4. **Write report sections** (in `Report-PWF` submodule) about the dual-clock design, BRAM falling-edge trick, the Cin investigation (the .dcp story is a great example for the report), and the cross-boundary optimization quirk.
-
----
-
-## Conventions in this codebase
-
-- Comments in HDL files use proper Danish characters (`æ`, `ø`, `å`) — not ASCII substitutes.
-- Commit messages use ASCII substitutes (`koer`, `saa`, `taeller`) — match the existing style in `git log`.
-- No AI attribution in commits (no `Co-Authored-By` lines).
-- File paths in this codebase contain spaces (`"4. Semester"` etc.) — quote them in shell commands.
+addsub_calc expected D_Word low byte: 8−3=05, 8+3=0B, 10+4=0E,
+10−4=06, 3−8=FB(−5), 200+100=2C(wrap). Workflow: SW=A→BTNR, SW=B→BTNL,
+SW=0/1→BTND (minus default), result on lower 2 7-seg digits.

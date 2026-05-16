@@ -60,7 +60,8 @@ LDI D7 B5           ; PC=4:  R7 = 5 = fill-løkkens indgang
 
 ; FILL -- LED'erne tændes fra top mod bund
 SRM D2 A2 B1        ; PC=5:  R2 >>= 1; Z=1 hvis R2 nu er 0
-BRZ A0 B3           ; PC=6:  Z -> hop til PC=10 (efter fill)
+BRZ D0 A0 B4        ; PC=6:  Z -> hop til PC=10 (efter fill).
+                    ;        offset relativt til PC=6: 6+4 = PC=10.
 NOT D3 A2           ; PC=7:  R3 = NOT R2 (fill-mønster)
 ST A6 B3            ; PC=8:  LED = R3
 JMP A7              ; PC=9:  hop tilbage til PC=5
@@ -75,7 +76,8 @@ ADI D7 A7 B2        ; PC=15: R7 = 14 + 2 = 16 = drain-løkkens indgang
 
 ; DRAIN -- LED'erne slukkes fra top mod bund
 SRM D2 A2 B1        ; PC=16: R2 >>= 1
-BRZ A0 B2           ; PC=17: Z -> hop til PC=20 (efter drain)
+BRZ D0 A0 B3        ; PC=17: Z -> hop til PC=20 (efter drain).
+                    ;        offset relativt til PC=17: 17+3 = PC=20.
 ST A6 B2            ; PC=18: LED = R2
 JMP A7              ; PC=19: hop tilbage til PC=16
 
