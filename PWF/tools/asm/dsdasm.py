@@ -4,7 +4,13 @@ dsdasm — streamlined assembler/disassembler/simulator for the DSD 62711 PWF mi
 
 Targets the Nexys 4 DDR implementation:
   - 16-bit instructions, 8 general registers R0..R7
-  - 3-bit immediates and 3-bit signed offsets
+  - 3-bit immediates
+  - BRZ/BRN have explicit D/A/B slot operands.
+      * A-slot = the register tested (flags are combinational; the branch
+        evaluates R[A] itself: BRZ if R[A]==0, BRN if R[A] bit7==1).
+      * 6-bit signed offset split across D-slot (sign + bits 4..3) and
+        B-slot (bits 2..0), relative to the branch's OWN address
+        (target = addr_branch + offset; PC doesn't tick during INF).
   - 256x16 BRAM, upper 8 addresses (0xF8-0xFF) memory-mapped I/O
 
 Usage:
@@ -52,8 +58,24 @@ ISA = {
     'ST':   OpInfo(0b0100000, (('A','reg'), ('B','reg'))),
     'LDI':  OpInfo(0b1001100, (('D','reg'), ('B','imm'))),
     'ADI':  OpInfo(0b1000010, (('D','reg'), ('A','reg'), ('B','imm'))),
-    'BRZ':  OpInfo(0b1100000, (('A','reg'), ('B','off'))),
-    'BRN':  OpInfo(0b1100001, (('A','reg'), ('B','off'))),
+    # BRZ/BRN er 3-slot instruktioner.
+    #
+    # A-SLOT er IKKE don't-care: flagene er kombinatoriske (intet
+    # flag-register). Under branchens EX0 koerer FU med FS=0000 og
+    # AX=IR(5:3), saa:
+    #   BRZ A<reg>  brancher hvis  R[reg] == 0
+    #   BRN A<reg>  brancher hvis  R[reg] bit 7 == 1 (negativ)
+    # Man kan IKKE "saette et flag og saa branche" -- branchen tester
+    # selv registret i sit A-slot.
+    #
+    # OFFSET ligger i D-slot (sign + bit 4..3) + B-slot (bit 2..0),
+    # 6-bit signed, og er relativt til BRANCHENS EGEN adresse (PC
+    # taeller ikke under INF, saa target = addr_branch + offset):
+    #   BRZ D0 A4 B2   -- hvis R4==0: target = addr+2 (spring 1 over)
+    #   BRZ D0 A5 B1   -- hvis R5==0: target = addr+1 (naeste; no-op)
+    #   BRZ D7 A1 B6   -- hvis R1==0: target = addr-2 (baglaens loop)
+    'BRZ':  OpInfo(0b1100000, (('D','reg'), ('A','reg'), ('B','reg'))),
+    'BRN':  OpInfo(0b1100001, (('D','reg'), ('A','reg'), ('B','reg'))),
     'JMP':  OpInfo(0b1110000, (('A','reg'),)),
     'LRI':  OpInfo(0b0010001, (('D','reg'), ('A','reg'))),
     'SRM':  OpInfo(0b0001101, (('D','reg'), ('A','reg'), ('B','imm'))),
@@ -143,10 +165,6 @@ def encode_insn(mnemonic, vals):
         elif kind == 'imm':
             if not 0 <= val <= 7:
                 raise ValueError(f"immediate out of range: {val} (valid 0..7)")
-        elif kind == 'off':
-            if not -4 <= val <= 3:
-                raise ValueError(f"offset out of range: {val} (valid -4..+3)")
-            val = val & 0b111
         word |= (val & 0b111) << SLOT_SHIFT[slot]
     return word
 
@@ -164,7 +182,9 @@ def assemble(source, filename="<input>"):
       - Comments:    ``;`` or ``#``
       - Directives:  ``.word <int>`` places a raw 16-bit value
       - Immediates:  decimal, ``0x..``, ``0b..``; labels also accepted (resolved to address)
-      - Branch offs: integer offset OR label (offset auto-computed)
+      - BRZ/BRN: A-slot = register der testes (R[A]==0 hhv. R[A] bit7).
+        D+B-slot = 6-bit signed offset relativt til branchens egen
+        adresse. Fx ``BRZ D0 A4 B2`` = hvis R4==0: hop til addr+2.
     """
     lines = source.splitlines()
     items = []      # (line_num, raw_line, kind, payload, addr)
@@ -247,21 +267,6 @@ def assemble(source, filename="<input>"):
                         vals.append(labels[raw])
                     else:
                         vals.append(parse_int(raw))
-                elif kind2 == 'off':
-                    # accept B<n> (0..3 only — negatives via labels), label, or raw int
-                    m = REG_RE.match(raw)
-                    if m and m.group(1).upper() == 'B':
-                        v = int(m.group(2))
-                        if v > 3:
-                            raise ValueError(
-                                f"B-prefix offset out of range: {raw} "
-                                f"(use a label for backward branches)"
-                            )
-                        vals.append(v)
-                    elif raw in labels:
-                        vals.append(labels[raw] - (addr + 1))
-                    else:
-                        vals.append(parse_int(raw))
             except ValueError as e:
                 raise AsmError(line_num, raw_line, str(e))
         try:
@@ -288,10 +293,6 @@ def decode_insn(word):
             parts.append(f"{slot}{val}")
         elif kind == 'imm':
             parts.append(str(val))
-        elif kind == 'off':
-            if val & 0b100:
-                val -= 8
-            parts.append(f"{val:+d}")
     return name.lower(), parts
 
 def disassemble(words):
@@ -444,7 +445,10 @@ class CPU:
         name, _ = entry
         A = self.R[SA] & 0xFF
         B = self.R[SB] & 0xFF
-        off = SB - 8 if (SB & 0b100) else SB
+        # Branch offset er 6-bit signed: D-slot (sign + 2 hoeje bits) + B-slot
+        # (3 lave bits), jvf. SignExtender. A-slot bruges ikke.
+        off_unsigned = (DR << 3) | SB
+        off = off_unsigned - 64 if (off_unsigned & 0b100000) else off_unsigned
         imm = SB  # zero-filled 3-bit immediate
 
         next_pc = (pc + 1) & 0xFF
@@ -488,9 +492,18 @@ class CPU:
             r = s & 0xFF
             self.R[DR] = r; self._flags(r, carry=int(s > 0xFF))
         elif name == 'BRZ':
-            if self.Z: next_pc = (next_pc + off) & 0xFF
+            # Hardware: flagene er KOMBINATORISKE (intet flag-register i
+            # Datapath). Under BRZ's EX0 koerer FU med default FS=0000
+            # (pass A) og AX = IR(5:3), saa Z = (R[A-slot] == 0).
+            # => BRZ A<reg> brancher hvis R[reg] == 0.
+            # PC taeller ikke under INF (PS=00), saa branch-target =
+            # pc + off (relativt til BRZ's EGEN adresse, ikke pc+1).
+            if A == 0:
+                next_pc = (pc + off) & 0xFF
         elif name == 'BRN':
-            if self.N: next_pc = (next_pc + off) & 0xFF
+            # BRN A<reg>: N = R[A-slot] bit 7. Branch hvis bit 7 sat.
+            if A & 0x80:
+                next_pc = (pc + off) & 0xFF
         elif name == 'JMP':
             target = A
             if target == pc:        # jmp-to-self ⇒ halt
