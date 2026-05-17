@@ -6,7 +6,7 @@ Course repository for 62711 at DTU -- spring 2026. Contains Vivado projects, VHD
 |-------|-------|--------|--------|
 | PWA | ALU / DataPath | Completed | [Download PDF](https://github.com/gigurd/Design-of-digital-systems-62711/releases/tag/latest) |
 | PWB | Microprogram Controller | Completed | [Download PDF](https://github.com/gigurd/Design-of-digital-systems-62711/releases/tag/latest-pwb) |
-| PWF | Final Microprocessor | Upcoming | -- |
+| PWF | Final Microprocessor | Completed | [PDF](Submissions/Group03_PWF_Report.pdf) |
 
 ---
 
@@ -33,9 +33,15 @@ Design and implementation of the Microprogram Controller (Program Counter, Instr
 
 ## PWF -- Final Microprocessor
 
-Complete working soft microprocessor on FPGA hardware -- combining PWA DataPath, PWB Control Unit, memory, and I/O.
+Complete working soft microprocessor on the Nexys 4 DDR -- combining the PWA DataPath and PWB Microprogram Controller with a 256x16 Block RAM, an 8x8 Port Register, the MUX MR data-bus mux and a seven-segment driver into one top-level system. Microcode programs (assembled with the bundled `dsdasm` tool, e.g. the `addsub_calc` plus/minus calculator) are verified in GHDL/Vivado simulation and run on the physical board.
 
-*Coming after Easter break.*
+- `PWF/` -- Vivado project (Nexys 4 DDR, xc7a100tcsg324-1)
+  - `sources/hdl/` -- 11 VHDL source files (Microprocessor, Ram256x16, PortReg8x8, MUX\_MR, Zero\_Filler\_2, DivClk, SevenSegDriver, TOP\_MODUL\_F, ...)
+  - `sources/tb/` -- 5 testbenches (Microprocessor, Ram256x16, PortReg8x8, Memory\_abcd, ...) + xsim wave scripts
+  - `tools/asm/` -- `dsdasm` microcode assembler + example programs
+- `Report-PWF/` -- LaTeX source for the combined PWA+PWB+PWF report (Overleaf two-way-synced submodule)
+- `Submissions/Group03_PWF.zip` -- Cleaned Vivado project ready for submission
+- `Submissions/Group03_PWF_Report.pdf` -- Final combined report (67 pages)
 
 ---
 
